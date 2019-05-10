@@ -12,6 +12,7 @@ setup(
     install_requires=[
         'bottle',
         'paste',
+        'jinja2',
         'numpy',
     ],
     entry_points={

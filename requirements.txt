@@ -1,4 +1,5 @@
 bottle
 paste
+jinja2
 numpy
 pandas
