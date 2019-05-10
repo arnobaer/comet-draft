@@ -18,6 +18,31 @@ from . import __version__
 from .datasource import FakeDataSource
 # from .measurement import Measurement
 
+class DataFileWriter:
+    def __init__(self, filename):
+        self.filename = filename
+        # Reset if file exists
+        with open(self.filename, "w") as f:
+            f.flush()
+    def append(self, data):
+        with open(self.filename, "a") as f:
+            columns = '\t'.join(map(lambda value: format(value, '>8.3f'), data))
+            f.write('{:.3f}\t'.format(time.time()))
+            f.write(columns)
+            f.write(os.linesep)
+
+class CustomFileWriter:
+    def __init__(self, filename):
+        self.filename = filename
+        # Reset if file exists
+        with open(self.filename, "w") as f:
+            f.flush()
+    def append(self, data):
+        with open(self.filename, "a") as f:
+            line = ''.join(map(lambda value: '[{:.1f}]'.format(value), data))
+            f.write(line)
+            f.write(os.linesep)
+
 class Measurement(threading.Thread):
     mutex = threading.Lock()
     def __init__(self, interval=.25):
@@ -27,6 +52,8 @@ class Measurement(threading.Thread):
         self.halted = True
         self.data = [] # numpy? well it does not resize well...
         self.source = FakeDataSource()
+        self.source.add_handler(DataFileWriter('samples.dat'))
+        self.source.add_handler(CustomFileWriter('samples.asc'))
     def stop(self):
         self.running = False
     def run(self):

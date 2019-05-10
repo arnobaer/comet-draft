@@ -3,10 +3,16 @@ import random
 class DataSource:
     def __init__(self):
         self.channels = []
+        self.handlers = []
     def add_channel(self, source):
         self.channels.append(source)
+    def add_handler(self, handler):
+        self.handlers.append(handler)
     def read(self):
-        return (source() for source in self.channels)
+        data = tuple(source() for source in self.channels)
+        for handler in self.handlers:
+            handler.append(data)
+        return data
 
 class FakeDataChannel:
     def __init__(self, value, minimum, maximum, gain, var):
