@@ -8,7 +8,7 @@ from bottle import jinja2_view as view
 from bottle import jinja2_template as template
 from bottle import run
 
-ASSETS_PATH = os.path.join(os.path.dirname(__file__), 'static')
+ASSETS_PATH = os.path.join(os.path.dirname(__file__), 'assets')
 VIEWS_PATH = os.path.join(os.path.dirname(__file__), 'views')
 
 from bottle import TEMPLATE_PATH
