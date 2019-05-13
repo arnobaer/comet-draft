@@ -8,6 +8,8 @@ app.controller("status", function($scope, $http, $interval) {
     $http.get("/api/status").then(function(response) {
       $scope.mode = response.data.mode;
       app.mode = $scope.mode;
+      $scope.samples = response.data.samples;
+      $scope.memory = response.data.memory;
     });
   }, ms);
 });

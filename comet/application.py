@@ -3,6 +3,9 @@ import threading
 import time
 import os
 
+from pympler import asizeof
+from hurry.filesize import size
+
 from bottle import response, route, post
 from bottle import static_file
 from bottle import jinja2_view as view
@@ -80,7 +83,10 @@ class Application:
         @route('/')
         @view('index')
         def index():
-            return dict(title=self.title)
+            return dict(
+                title=self.title,
+                version=__version__,
+            )
 
         @route('/assets/<filename>')
         def assets(filename):
@@ -123,7 +129,9 @@ class Application:
                 name=self.title,
                 version=__version__,
                 backend=self.backend,
-                mode=self.worker.state
+                mode=self.worker.state,
+                samples=len(self.worker.data),
+                memory=size(asizeof.asizeof(self.worker.data))
             )
 
         @route('/api/log')

@@ -13,6 +13,8 @@ setup(
         'bottle',
         'paste',
         'jinja2',
+        'pympler',
+        'hurry.filesize',
         'numpy',
         'pyvisa',
         'pyvisa-sim',
