@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <title>{{title|upper}}</title>
+  <link rel=icon href=/assets/icon.svg sizes="any" type="image/svg+xml">
   <link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css">
   <link rel="stylesheet" href="/assets/dygraph.css">
   <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
@@ -11,6 +12,7 @@
 <body ng-app="comet">
 
   <div class="w3-container">
+    <img src="/assets/icon.svg" class="w3-left w3-margin-top w3-margin-right" style="width:48px;">
     <h3>{{title|upper}}</h3>
 {% raw %}
     <div ng-controller="status">
