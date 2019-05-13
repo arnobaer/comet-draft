@@ -53,7 +53,7 @@ datasource.add_handler(handler)
 Reading from a data source triggers all assigned data handlers.
 
 ```python
-datasource.read()
-# writes following line to file 'dump.dat'
+>>> datasource.read()
+# writes to file 'dump.dat':
 # 't=1557748564.916\t0.9\t0.2\tchoice='8'\n'
 ```
