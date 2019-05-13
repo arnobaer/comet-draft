@@ -2,4 +2,5 @@ bottle
 paste
 jinja2
 numpy
-pandas
+pyvisa
+pyvisa-sim

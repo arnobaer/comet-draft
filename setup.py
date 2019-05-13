@@ -14,6 +14,8 @@ setup(
         'paste',
         'jinja2',
         'numpy',
+        'pyvisa',
+        'pyvisa-sim',
     ],
     entry_points={
         'scripts': [

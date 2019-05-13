@@ -11,8 +11,12 @@ class Measurement(object):
         - context -- measurement loop context
     """
 
+    Running = 'running'
+    Halted = 'halted'
+
     def __init__(self, context):
         self.context = context
+        self.state = self.Halted
 
     def init(self):
         """Called at the begin of a measurement.

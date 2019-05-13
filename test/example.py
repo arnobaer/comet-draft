@@ -1,4 +1,6 @@
-from comet.application import Application
+import unittest
+
+from ..comet.application import Application
 #from comet.monitoring import Monitor
 
 class ExampleApplication(Application):
@@ -7,9 +9,10 @@ class ExampleApplication(Application):
     def code(self):
         pass
 
-def main():
-    app = ExampleApplication()
-    app.run()
+class ExampleTest(unittest.TestCase):
+    def testMain():
+        app = ExampleApplication()
+        app.run()
 
 if __name__ == '__main__':
-    main()
+    unittest.main()

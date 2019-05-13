@@ -1,3 +1,4 @@
+import logging
 import threading
 import time
 import os
@@ -16,40 +17,31 @@ TEMPLATE_PATH.append(VIEWS_PATH)
 
 from . import __version__
 from .datasource import FakeDataSource
+from .datawriter import DataWriter
 # from .measurement import Measurement
 
-class DataFileWriter:
-    def __init__(self, filename):
-        self.filename = filename
-        # Reset if file exists
-        with open(self.filename, "w") as f:
-            f.flush()
-    def append(self, data):
-        with open(self.filename, "a") as f:
-            columns = '\t'.join(map(lambda value: format(value, '>8.3f'), data))
-            f.write('{:.3f}\t'.format(time.time()))
-            f.write(columns)
-            f.write(os.linesep)
+class DataFileWriter(DataWriter):
+    def format(self, data):
+        columns = ['{:.3f}'.format(time.time())]
+        columns.extend(list(map(lambda value: format(value, '>8.3f'), data)))
+        return '\t'.join(columns)
 
-class CustomFileWriter:
-    def __init__(self, filename):
-        self.filename = filename
-        # Reset if file exists
-        with open(self.filename, "w") as f:
-            f.flush()
-    def append(self, data):
-        with open(self.filename, "a") as f:
-            line = ''.join(map(lambda value: '[{:.1f}]'.format(value), data))
-            f.write(line)
-            f.write(os.linesep)
+class CustomFileWriter(DataWriter):
+    def format(self, data):
+        return ''.join(map(lambda value: '[{:.1f}]'.format(value), data))
 
 class Measurement(threading.Thread):
+
     mutex = threading.Lock()
+
+    Running = 'running'
+    Halted = 'halted'
+
     def __init__(self, interval=.25):
         super(Measurement, self).__init__()
         self.interval = interval
+        self.state = self.Halted
         self.running = True
-        self.halted = True
         self.data = [] # numpy? well it does not resize well...
         self.source = FakeDataSource()
         self.source.add_handler(DataFileWriter('samples.dat'))
@@ -60,8 +52,7 @@ class Measurement(threading.Thread):
         t1 = time.time()
         while self.running:
             t2 = time.time()
-            if not self.halted and t2 >= (t1 + self.interval):
-                print("\033[33mTaking data...\033[0m", flush=True)
+            if self.state == self.Running and t2 >= (t1 + self.interval):
                 self.mutex.acquire()
                 data = self.source.read()
                 point = [t2]
@@ -69,24 +60,23 @@ class Measurement(threading.Thread):
                 self.data.append(point)
                 self.mutex.release()
                 t1 = time.time()
+                td = (t1-t2) * 1000.
+                logging.info("\033[33mAcquired data (%.6f ms)\033[0m", td)
             else:
                 time.sleep(self.interval / 4.)
-        print("stopping measurement thread...")
-
-class Mode:
-        Halted = 'halted'
-        Running = 'running'
+        logging.debug("stopping measurement thread...")
 
 class Application:
 
-    def __init__(self, title='comet'):
+    def __init__(self, title='comet', backend=None):
         self.title = title
+        self.backend = backend or ''
         self.log = []
-        self.init_html()
-        self.init_json_api()
         self.worker = Measurement()
+        self.create_html_api()
+        self.create_json_api()
 
-    def init_html(self):
+    def create_html_api(self):
         @route('/')
         @view('index')
         def index():
@@ -96,7 +86,7 @@ class Application:
         def assets(filename):
             return static_file(filename, root=ASSETS_PATH)
 
-    def init_json_api(self):
+    def create_json_api(self):
         @route('/api/data/<start:int>')
         def api_info(start=0):
             return dict(start=start, data=self.worker.data[start:])
@@ -107,8 +97,14 @@ class Application:
 
         @post('/api/toggle')
         def api_toggle():
-            self.worker.halted = not self.worker.halted
-            message = {True:'stopped', False:'started'}[self.worker.halted]
+            if self.worker.state == self.worker.Running:
+                self.worker.state = self.worker.Halted
+            else:
+                self.worker.state = self.worker.Running
+            message = {
+                self.worker.Halted: 'stopped',
+                self.worker.Running: 'started',
+            }[self.worker.state]
             self.append_log(message)
 
         @post('/api/reset/a')
@@ -123,15 +119,22 @@ class Application:
 
         @route('/api/status')
         def api_info():
-            mode = {False:Mode.Running, True:Mode.Halted}[self.worker.halted]
-            return dict(name=self.title, version=__version__, mode=mode)
+            return dict(
+                name=self.title,
+                version=__version__,
+                backend=self.backend,
+                mode=self.worker.state
+            )
 
         @route('/api/log')
         def api_info():
             return dict(log=self.log)
 
     def append_log(self, message):
-        self.log.append(dict(ts=time.time(), message=message))
+        self.log.append(dict(
+            ts=time.time(),
+            message=message,
+        ))
 
     def run(self, **kwargs):
         # Start main thread

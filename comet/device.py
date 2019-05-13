@@ -4,7 +4,6 @@ import re
 
 from types import MethodType
 
-
 class Device(object):
     """Generic VISA device driver.
 
@@ -27,7 +26,7 @@ class Device(object):
     """Default VISA resource configuration, can be overwritten by user configuration."""
 
     reset_throttle = 0.05
-    """Throttle for executing lsit of reset commands, in seconds."""
+    """Throttle for executing list of reset commands, in seconds."""
 
     def __init__(self, manager, config=None):
         self.__manager = manager
