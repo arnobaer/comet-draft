@@ -7,18 +7,7 @@ from types import MethodType
 from . import Driver
 
 class Device:
-    """Generic configurable VISA device class.
-
-    Keyword arguments:
-    - manager -- resource manager
-    - config -- device configuration dictionary
-
-    Example:
-    >>> manager = VisaConnectWizard()
-    >>> config = {'set_voltage': '!VOLT {:.2f}'}
-    >>> device = Device(manager, config)
-    >>> device.set_voltage(42.0)
-    """
+    """Generic configurable VISA device."""
 
     default_config = {
         'get_idn': '*IDN?',
@@ -27,7 +16,7 @@ class Device:
     }
     """Default VISA resource configuration, can be overwritten by user configuration."""
 
-    reset_throttle = 0.05
+    throttle = 0.05
     """Throttle for executing list of reset commands, in seconds."""
 
     def __init__(self, driver, mutex, config=None):
@@ -40,37 +29,32 @@ class Device:
             self.__config.update(config)
         # Register methods from configuration
         for key, value in self.__config.items():
-            # Register getters
-            if re.match(r'^get_\w+$', key):
+            # Register query command
+            if re.match(r'^query_\w+$', key):
                 self.__register(self.query, key, value)
-            # Register setters
-            if re.match(r'^set_\w+$', key):
+            # Register write command
+            if re.match(r'^write_\w+$', key):
                 self.__register(self.write, key, value)
+            # Register read command
+            if re.match(r'^read_\w+$', key):
+                self.__register(self.read, key, None)
 
     def __register(self, method, name, command):
         """Registers get/set methods loaded from config."""
-        def f(self, *args, **kwargs):
+        def wrapper(self, *args, **kwargs):
             logging.debug("%s(%s)::%s(command='%s')", self.__class__.__name__, self.resource, name, command)
             return method(command.format(*args, **kwargs))
-        setattr(self, name, MethodType(f, self))
+        setattr(self, name, MethodType(wrapper, self))
 
     @property
-    def manager(self):
-        """Returns resource manager."""
+    def driver(self):
+        """Returns device driver."""
         return self.__driver
 
     @property
     def config(self):
         """Returns device configuration dictionary."""
         return self.__config
-
-    def __getitem__(self, key):
-        """Provided for convenience."""
-        return self.config[key]
-
-    def items(self):
-        """Provided for convenience."""
-        return self.config.items()
 
     @property
     def resource(self):
@@ -80,17 +64,17 @@ class Device:
     def read(self):
         """Read from VISA resource. Use optional type callback to cast result."""
         logging.debug("%s(%s)::read()", self.__class__.__name__, self.resource)
-        return self.manager.read(self.resource)
+        return self.driver.read(self.resource)
 
     def write(self, command):
         """Write to from VISA resource."""
         logging.debug("%s(%s)::write(command='%s')", self.__class__.__name__, self.resource, command)
-        self.manager.write(self.resource, command)
+        self.driver.write(self.resource, command)
 
     def query(self, command):
         """Query from VISA resource. Use optional type callback to cast result."""
         logging.debug("%s(%s)::query(command='%s')", self.__class__.__name__, self.resource, command)
-        return self.manager.query(self.resource, command)
+        return self.driver.query(self.resource, command)
 
     def reset(self):
         commands = self.config.get('reset')
@@ -101,7 +85,7 @@ class Device:
                 k = 'set_{}'.format(k)
                 getattr(self, k)(v)
                 # HACK self.read() # free buffer -- Ugh! Some instruments might require this!
-                time.sleep(self.reset_throttle)
+                time.sleep(self.throttle)
 
 if __name__ == '__main__':
     import doctest

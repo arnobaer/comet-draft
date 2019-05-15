@@ -2,8 +2,10 @@ import argparse
 import logging
 import sys
 
-from . import __version__
-from .application import Application
+import env
+
+from comet import __version__ as version
+from comet import Application
 
 def parse_args():
     # Parse command line arguments
@@ -11,7 +13,7 @@ def parse_args():
     parser.add_argument('--host', default='0.0.0.0', help="host, default is 0.0.0.0")
     parser.add_argument('--port', default=8080, type=int, help="port, default is 8080")
     parser.add_argument('--backend', default='@py', help="VISA backend, default is @py")
-    parser.add_argument('--version', action='version', version='%(prog)s {}'.format(__version__))
+    parser.add_argument('--version', action='version', version='%(prog)s {}'.format(version))
     return parser.parse_args()
 
 def main():
