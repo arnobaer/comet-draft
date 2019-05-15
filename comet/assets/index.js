@@ -1,22 +1,38 @@
 var app = angular.module("comet", []);
-app.mode = null;
 
-app.controller("status", function($scope, $http, $interval) {
-  var ms = 1000;
-  $scope.mode = "loading...";
+app.service('statusService', function($http, $interval) {
+  var data = { running: false };
   $interval(function() {
     $http.get("/api/status").then(function(response) {
-      $scope.mode = response.data.mode;
-      app.mode = $scope.mode;
-      $scope.samples = response.data.samples;
-      $scope.memory = response.data.memory;
+      data = response.data;
     });
-  }, ms);
+  }, 1000);
+  this.data = function() {
+    data.running = data.mode == 'running';
+    return data;
+  }
+  this.toggle = function() {
+    data.running = !data.running;
+  }
 });
 
-app.controller("control", function($scope, $http) {
-  $scope.toggle = function() {
+app.controller("status", function($scope, $http, $interval, statusService) {
+  $interval(function() {
+    var data = statusService.data();
+    $scope.mode = data.mode;
+    $scope.running = data.mode == 'running';
+    $scope.samples = data.samples;
+  }, 500);
+});
+
+app.controller("control", function($scope, $http, $interval, statusService) {
+  $scope.start = function() {
     $http.post("/api/toggle");
+    statusService.toggle();
+  };
+  $scope.stop = function() {
+    $http.post("/api/toggle");
+    statusService.toggle();
   };
   $scope.resetA = function() {
     $http.post("/api/reset/a");
@@ -24,6 +40,13 @@ app.controller("control", function($scope, $http) {
   $scope.resetB = function() {
     $http.post("/api/reset/b");
   };
+  $scope.gain = function() {
+    $http.post("/api/gain");
+  };
+  $interval(function() {
+    var data = statusService.data();
+    $scope.running = data.running;
+  }, 500);
 });
 
 app.controller("measure", function($scope, $http, $interval) {

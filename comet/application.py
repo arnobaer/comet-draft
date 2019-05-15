@@ -3,9 +3,6 @@ import threading
 import time
 import os
 
-from pympler import asizeof
-from hurry.filesize import size
-
 from bottle import response, route, post
 from bottle import static_file
 from bottle import jinja2_view as view
@@ -123,6 +120,11 @@ class Application:
             self.worker.source.reset_b()
             self.append_log('reset B')
 
+        @post('/api/gain')
+        def api_gain():
+            self.worker.source.gain()
+            self.append_log('gain A+B')
+
         @route('/api/status')
         def api_info():
             return dict(
@@ -131,7 +133,6 @@ class Application:
                 backend=self.backend,
                 mode=self.worker.state,
                 samples=len(self.worker.data),
-                memory=size(asizeof.asizeof(self.worker.data))
             )
 
         @route('/api/log')
