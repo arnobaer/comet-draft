@@ -20,6 +20,8 @@ from .datasource import FakeDataSource
 from .datawriter import DataWriter
 # from .measurement import Measurement
 
+from comet import DeviceManager
+
 class DataFileWriter(DataWriter):
     def format(self, data):
         columns = ['{:.3f}'.format(time.time())]
@@ -72,9 +74,18 @@ class Application:
         self.title = title
         self.backend = backend or ''
         self.log = []
+
+        self.__device_manager = DeviceManager()
+
         self.worker = Measurement()
         self.create_html_api()
         self.create_json_api()
+
+        self.device_manager.create('SMU', {'name': 'Keithley2400'})
+
+    @property
+    def device_manager(self):
+        return self.__device_manager
 
     def create_html_api(self):
         @route('/')
