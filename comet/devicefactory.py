@@ -1,7 +1,13 @@
-from . import Driver
 from . import Device
 
 from types import MethodType
+
+"""Device factory
+
+Creates device instances and attaches commands and sequences from device
+configuration configuiration.
+
+"""
 
 class DeviceFactory:
 

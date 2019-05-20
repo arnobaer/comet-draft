@@ -14,3 +14,4 @@ Use your web browser to access http://localhost:8080/
 * [Devices](doc/devices.md)
 * [Data sources](doc/datasources.md)
 * [Data handlers](doc/datahandlers.md)
+* [Ramping](doc/ramping.md)

@@ -4,8 +4,6 @@ import re
 
 from types import MethodType
 
-from . import Driver
-
 class Device:
     """Generic configurable VISA device."""
 
