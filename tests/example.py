@@ -5,7 +5,7 @@ import sys
 import env
 
 from comet import __version__ as version
-from comet import Application
+from comet.application import Application
 
 def parse_args():
     # Parse command line arguments

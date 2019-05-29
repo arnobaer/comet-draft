@@ -17,7 +17,7 @@
     <div class="w3-bar w3-theme">
       <div class="w3-content">
         <img id="logo" src="/assets/icon.svg" class="w3-left">
-        <span class="w3-right w3-small w3-margin-top">Technical demostrator application</span>
+        <span class="w3-right w3-small w3-margin-top">Technical demonstrator application</span>
         <h3>{{ title|upper }}</h3>
       </div>
     </div>

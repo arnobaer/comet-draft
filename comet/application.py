@@ -9,6 +9,8 @@ from bottle import jinja2_view as view
 from bottle import jinja2_template as template
 from bottle import run
 
+import pyvisa
+
 ASSETS_PATH = os.path.join(os.path.dirname(__file__), 'assets')
 VIEWS_PATH = os.path.join(os.path.dirname(__file__), 'views')
 
@@ -20,7 +22,7 @@ from .datasource import FakeDataSource
 from .datawriter import DataWriter
 # from .measurement import Measurement
 
-from comet import DeviceManager
+from comet.device import DeviceManager
 
 class DataFileWriter(DataWriter):
     def format(self, data):
@@ -75,13 +77,14 @@ class Application:
         self.backend = backend or ''
         self.log = []
 
-        self.__device_manager = DeviceManager()
+        rm = pyvisa.ResourceManager('@sim')
+        self.__device_manager = DeviceManager(rm)
 
         self.worker = Measurement()
         self.create_html_api()
         self.create_json_api()
 
-        self.device_manager.create('SMU', {'name': 'Keithley2400'})
+        self.device_manager.create('SMU', 'GPIB::10', {})
 
     @property
     def device_manager(self):
