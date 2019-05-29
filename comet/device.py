@@ -1,53 +1,52 @@
-import threading
+import logging
 import re
+import threading
 
 from types import MethodType
 
 class DeviceException(Exception):
     pass
 
-class Device:
-    """Generic device class.
+class DeviceAlreadyExists(DeviceException):
+    pass
 
-    >>> rm = pyvisa.ResourceManager()
-    >>> instr = rm.open_resource('GPIB::16')
-    >>> device = Device('SMU', instr)
-    >>> device.read()
+class DeviceManager:
+    """Device manager class.
+    
+    :param resource_manager: a resource manager instance
     """
 
-    RESOURCE_API = (
-        'query',
-        'query_ascii_values',
-        'query_binary_values',
-        'read',
-        'read_ascii_values',
-        'read_binary_values',
-        'write',
-        'write_ascii_values',
-        'write_binary_values',
-    )
-
-    def __init__(self, name, resource):
-        self.__name = name
-        self.__resource = resource
-        self.__mutex = threading.Lock()
-        # Create thread safe resource API
-        for method in self.RESOURCE_API:
-            def mutex_wrapper(callback, *args, **kwargs):
-                self.__mutex.acquire()
-                result = callback(*args, **kwargs)
-                self.__mutex.release()
-                return result
-            callback = getattr(self.__resource, method)
-            setattr(self, method, MethodType(mutex_wrapper, callback))
+    def __init__(self, resource_manager):
+        self.__factory = DeviceFactory(resource_manager)
+        self.__devices = {}
 
     @property
-    def name(self):
-        return self.__name
+    def factory(self):
+        """Returns device factory instance."""
+        return self.__factory
 
     @property
-    def resource(self):
-        return self.__resource
+    def devices(self):
+        """Retrurns devices dictionary."""
+        return self.__devices
+
+    def load(self, config):
+        """Create devices from configuration."""
+        for device in config.get('devices'):
+            self.create(device.get('name'), device)
+
+    def create(self, name, resource_name, config):
+        """Create a new device from configuration."""
+        if name in self.devices:
+            logging.error("Device '%s' already registered", message)
+            raise DeviceAlreadyExists()
+        device = self.factory.create(name, resource_name, config)
+        self.devices[name] = device
+        return device
+
+    def get(self, name):
+        """Returns device by name or None if not found."""
+        return self.devices.get(name)
 
 class DeviceFactory:
     """Device factory class.
@@ -81,6 +80,51 @@ class DeviceFactory:
             setattr(device, routine.name, MethodType(routine, device))
         return device
 
+
+class Device:
+    """Generic device class.
+
+    >>> rm = pyvisa.ResourceManager()
+    >>> instr = rm.open_resource('GPIB::16')
+    >>> device = Device('SMU', instr)
+    >>> device.read()
+    """
+
+    ResourceAPI = (
+        'query',
+        'query_ascii_values',
+        'query_binary_values',
+        'read',
+        'read_ascii_values',
+        'read_binary_values',
+        'write',
+        'write_ascii_values',
+        'write_binary_values',
+    )
+    """Resource methods exposed by this class."""
+
+    def __init__(self, name, resource):
+        self.__name = name
+        self.__resource = resource
+        self.__mutex = threading.Lock()
+        # Create thread safe resource API
+        for method in self.ResourceAPI:
+            def mutex_wrapper(callback, *args, **kwargs):
+                self.__mutex.acquire()
+                result = callback(*args, **kwargs)
+                self.__mutex.release()
+                return result
+            callback = getattr(self.__resource, method)
+            setattr(self, method, MethodType(mutex_wrapper, callback))
+
+    @property
+    def name(self):
+        return self.__name
+
+    @property
+    def resource(self):
+        return self.__resource
+
 class DeviceRoutine:
     """Device routine created from configuration.
 
@@ -112,9 +156,12 @@ class DeviceRoutine:
             attrs['values'] = args
         return attrs
 
-    def __call__(self, context, *args, **kwargs):
+    def __call__(self, device, *args, **kwargs):
         attrs = self.__create_attrs(*args, **kwargs)
-        result = getattr(context, self.method)(**attrs)
+        # Validate device method
+        if self.method not in device.ResourceAPI:
+            raise DeviceException("no such device method: {}".format(self.method))
+        result = getattr(device, self.method)(**attrs)
         # Validate return value
         if self.require is not None:
             if not re.match(self.require, result):
