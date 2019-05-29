@@ -1,90 +1,122 @@
-import logging
-import time
+import threading
 import re
 
 from types import MethodType
 
+class DeviceException(Exception):
+    pass
+
 class Device:
-    """Generic configurable VISA device."""
+    """Generic device class.
 
-    default_config = {
-        'get_idn': '*IDN?',
-        'set_reset': '*rst',
-        'set_clear': '*cls',
-    }
-    """Default VISA resource configuration, can be overwritten by user configuration."""
+    >>> rm = pyvisa.ResourceManager()
+    >>> instr = rm.open_resource('GPIB::16')
+    >>> device = Device('SMU', instr)
+    >>> device.read()
+    """
 
-    throttle = 0.05
-    """Throttle for executing list of reset commands, in seconds."""
+    RESOURCE_API = (
+        'query',
+        'query_ascii_values',
+        'query_binary_values',
+        'read',
+        'read_ascii_values',
+        'read_binary_values',
+        'write',
+        'write_ascii_values',
+        'write_binary_values',
+    )
 
-    def __init__(self, driver, mutex, config=None):
-        self.__driver = driver
-        self.__mutex = mutex
-        # Copy default configuration
-        self.__config = self.default_config.copy()
-        # Update configuration
-        if config is not None:
-            self.__config.update(config)
-        # Register methods from configuration
-        for key, value in self.__config.items():
-            # Register query command
-            if re.match(r'^query_\w+$', key):
-                self.__register(self.query, key, value)
-            # Register write command
-            if re.match(r'^write_\w+$', key):
-                self.__register(self.write, key, value)
-            # Register read command
-            if re.match(r'^read_\w+$', key):
-                self.__register(self.read, key, None)
-
-    def __register(self, method, name, command):
-        """Registers get/set methods loaded from config."""
-        def wrapper(self, *args, **kwargs):
-            logging.debug("%s(%s)::%s(command='%s')", self.__class__.__name__, self.resource, name, command)
-            return method(command.format(*args, **kwargs))
-        setattr(self, name, MethodType(wrapper, self))
+    def __init__(self, name, resource):
+        self.__name = name
+        self.__resource = resource
+        self.__mutex = threading.Lock()
+        # Create thread safe resource API
+        for method in self.RESOURCE_API:
+            def mutex_wrapper(callback, *args, **kwargs):
+                self.__mutex.acquire()
+                result = callback(*args, **kwargs)
+                self.__mutex.release()
+                return result
+            callback = getattr(self.__resource, method)
+            setattr(self, method, MethodType(mutex_wrapper, callback))
 
     @property
-    def driver(self):
-        """Returns device driver."""
-        return self.__driver
-
-    @property
-    def config(self):
-        """Returns device configuration dictionary."""
-        return self.__config
+    def name(self):
+        return self.__name
 
     @property
     def resource(self):
-        """Returns VISA resource from configuration."""
-        return self.config.get('Visa_Resource')
+        return self.__resource
 
-    def read(self):
-        """Read from VISA resource. Use optional type callback to cast result."""
-        logging.debug("%s(%s)::read()", self.__class__.__name__, self.resource)
-        return self.driver.read(self.resource)
+class DeviceFactory:
+    """Device factory class.
 
-    def write(self, command):
-        """Write to from VISA resource."""
-        logging.debug("%s(%s)::write(command='%s')", self.__class__.__name__, self.resource, command)
-        self.driver.write(self.resource, command)
+    :param resource_manager: a VISA resource mananger instance
 
-    def query(self, command):
-        """Query from VISA resource. Use optional type callback to cast result."""
-        logging.debug("%s(%s)::query(command='%s')", self.__class__.__name__, self.resource, command)
-        return self.driver.query(self.resource, command)
+    >>> config = {'get_voltage': {'method': 'query', 'message': 'CTRL:VOLT?'}}
+    >>> factory = DeviceFactory()
+    >>> device = factory.create('SMU', 'GPIB::16', config)
+    >>> device.get_voltage()
+    """
 
-    def reset(self):
-        commands = self.config.get('reset')
-        if commands is None:
-            return
-        for command in commands:
-            for k, v in command.items():
-                k = 'set_{}'.format(k)
-                getattr(self, k)(v)
-                # HACK self.read() # free buffer -- Ugh! Some instruments might require this!
-                time.sleep(self.throttle)
+    def __init__(self, resource_manager):
+        self.resource_manager = resource_manager
 
-if __name__ == '__main__':
-    import doctest
-    doctest.testmod()
+    def create(self, name, resource_name, config={}):
+        """Creates a new device from configuration.
+
+        :param name: device name
+        :param resource_name: device resource name
+        :param config: device configuration (optional)
+
+        :returns: a Device instance
+        """
+        resource = self.resource_manager.open_resource(resource_name)
+        device = Device(name, resource)
+        for name, kwargs in config.get('routines', {}).items():
+            routine = DeviceRoutine(name, **kwargs)
+            if hasattr(device, routine.name):
+                raise AttributeError(routine.name)
+            setattr(device, routine.name, MethodType(routine, device))
+        return device
+
+class DeviceRoutine:
+    """Device routine created from configuration.
+
+    :param name: name of routine
+    :param method: name of resource callback
+    :param require: regular expression to validate return value (optional)
+    :param description: routine documentation (optional)
+
+    >>> routine = DeviceRoutine('set_voltage', 'query', message='CTRL:VOLT {:.6f}')
+    >>> routine(device, 4.2)
+    """
+
+    def __init__(self, name, method, require=None, description=None, **kwargs):
+        self.name = name
+        self.method = method
+        self.require = require or None
+        self.description = description or ''
+        self.kwargs = kwargs
+
+    def __create_attrs(self, *args, **kwargs):
+        """Create attribute set for routine call."""
+        attrs = {}
+        attrs.update(self.kwargs)
+        if self.method in ('query', 'write'):
+            attrs['message'] = attrs['message'].format(*args, **kwargs)
+        elif self.method in ('query_ascii_values', 'write_ascii_values'):
+            attrs['values'] = args
+        elif self.method in ('query_binary_values', 'write_binary_values'):
+            attrs['values'] = args
+        return attrs
+
+    def __call__(self, context, *args, **kwargs):
+        attrs = self.__create_attrs(*args, **kwargs)
+        result = getattr(context, self.method)(**attrs)
+        # Validate return value
+        if self.require is not None:
+            if not re.match(self.require, result):
+                raise DeviceException("invalid return value: '{result}'".format())
+        return result
