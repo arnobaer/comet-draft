@@ -139,12 +139,22 @@ class DeviceCommand:
     >>> command(device, 4.2)
     """
 
-    def __init__(self, name, method, require=None, description=None, **kwargs):
+    def __init__(self, name, method, require=None, choices=None, description=None, **kwargs):
         self.name = name
         self.method = method
         self.require = require or None
+        self.choices = choices or None
         self.description = description or ''
         self.kwargs = kwargs
+
+    def __check_choices(self, *args, **kwargs):
+        if self.choices:
+            for arg in args:
+                if arg not in self.choices:
+                    raise ValueError("invalid argument value '{}'".format(arg))
+            for k, v in kwargs:
+                if v not in self.choices:
+                    raise ValueError("invalid argument value '{}'".format(v))
 
     def __create_attrs(self, *args, **kwargs):
         """Create attribute set for command call."""
@@ -153,7 +163,12 @@ class DeviceCommand:
         if self.method in ('query', 'query_ascii_values', 'query_binary_values', 'write'):
             if 'message' not in attrs:
                 raise ValueError("missing attribute 'message' for command '{}'".format(self.name))
-            attrs['message'] = attrs['message'].format(*args, **kwargs)
+            self.__check_choices(*args, **kwargs)
+            try:
+                message = attrs['message'].format(*args, **kwargs)
+            except IndexError:
+                raise ValueError("missing arguments for command '{}'".format(self.name))
+            attrs['message'] = message
         elif self.method in ('write_ascii_values', 'write_binary_values'):
             attrs['values'] = args
         return attrs

@@ -80,5 +80,13 @@ class DeviceCommandTestCase(DeviceManagerTestCase):
         result = command(device)[0]
         self.assertEqual(result, 4.200)
 
+        # applying choices
+        kwargs = {'message': '!FREQ {:.2f}', 'choices': [1.0, 2.0]}
+        command = DeviceCommand('set_frequency', 'query', **kwargs)
+        result = command(device, 1.000)
+        self.assertEqual(result, 'OK')
+        result = command(device, 2.000)
+        self.assertEqual(result, 'OK')
+
 if __name__ == '__main__':
     unittest.main()
