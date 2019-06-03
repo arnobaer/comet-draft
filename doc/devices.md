@@ -12,13 +12,23 @@ A simple exampel configuration defining `commands` and `sequences`.
 ```yaml
 name: device name
 commands:
-  get_idn: '*IDN?'
-  get_reading: READ?
-  set_reset: '*RST'
-  set_voltage: CTRL:VOLTS {:f}
-  set_current: CTRL:CURR {:f}
+  get_idn:
+    method: query
+    message: '*IDN?'
+  get_reading:
+    method: query
+    message: READ?
+  set_reset:
+    method: write
+    message: '*RST'
+  set_voltage:
+    method: write
+    message: CTRL:VOLTS {:f}
+  set_current:
+    method: write
+    message: CTRL:CURR {:f}
 sequences:
-  call_reset:
+  do_reset:
     - set_reset: []
     - set_voltage: [0]
     - set_current: [0.001]
@@ -30,10 +40,12 @@ sequences:
 
 ```yaml
 commands:
-  get_reading: READ?
+  get_reading:
+    method: query
+    message: READ?
 ```
 
-This adds a method of name `get_reading` to device using `query` as default method.
+This adds a method of name `get_reading` to device using `query` as VISA method.
 
 ```python
 >>> device.get_reading()
@@ -47,13 +59,13 @@ It is equivalent to the following query command.
 '42.123'
 ```
 
-To convert the result to a type other then string, option `type` can be used.
+To convert the result to a type other then string, option `converter` can be used.
 
 ```yaml
 commands:
   get_reading:
     message: READ?
-    type: float
+    converter: f
 ```
 
 This tries to convert the result to `float` and raises a `DeviceError` exception on failure.
@@ -66,10 +78,10 @@ This tries to convert the result to `float` and raises a `DeviceError` exception
 ```yaml
 commands:
   get_buffer:
-    escription: Retruns a numpy array containing float values
+    description: Retruns a numpy array containing float values
     method: query_ascii_values
     message: ':SAMP:BUFF'
-    convert: float
+    converter: f
     separator: ,
     container: tuple
     delay: .100
@@ -78,14 +90,16 @@ commands:
 This is equivalent to
 
 ```python
->>> device.query_ascii_values(':SAMP:BUFF', convert=float, separator=',', container=tuple, delay=.100)
+>>> device.query_ascii_values(':SAMP:BUFF', converter=f, separator=',', container=tuple, delay=.100)
 ```
 
 #### Setters
 
 ```yaml
 commands:
-  set_func: CTRL:FUNC {}
+  set_func:
+    method: write
+    message: CTRL:FUNC {}
 ```
 
 ```python
@@ -105,9 +119,8 @@ More options
 | Option | Description |
 | --- | --- |
 | `message` | Message, string formatting compatible (required) |
-| `method` | VISA method (optional, default is `write` for commands beginning with `set_*` and `query` for methods beginning with `get_*`) |
-| `success` | Regular expression matching returned message (optional, sets `method` to `query` if not set) |
-| `failure` | Regular expression to parse errors if `success` did not match (optional). |
+| `method`  | VISA method used for callback |
+| `require` | Regular expression matching returned message |
 
 ```yaml
 commands:
@@ -115,8 +128,7 @@ commands:
     method: query
     message: CTRL:FUNC {}
     choices: [ON, OFF]
-    success: OK|DONE
-    failure: Err(\d+)
+    require: OK|DONE
 ```
 
 ```python
@@ -127,7 +139,7 @@ commands:
 >>> device.set_func(42)
 Traceback (most recent call last):
   ...
-DeviceError: Err42
+DeviceError: ERROR42
 ```
 
 ```yaml
@@ -135,7 +147,7 @@ commands:
   set_switches:
     method: write_ascii_values
     message: CTRL:SWIT
-    converter: int
+    converter: i
 ```
 
 ```python
@@ -149,6 +161,7 @@ This is equivalent to
 ```yaml
 commands:
   set_switches:
+    method: write
     message: CTRL:SWIT {}
 ```
 
