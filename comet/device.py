@@ -12,7 +12,7 @@ class DeviceAlreadyExists(DeviceException):
 
 class DeviceManager:
     """Device manager class.
-    
+
     :param resource_manager: a resource manager instance
     """
 
@@ -53,7 +53,7 @@ class DeviceFactory:
 
     :param resource_manager: a VISA resource mananger instance
 
-    >>> config = {'get_voltage': {'method': 'query', 'message': 'CTRL:VOLT?'}}
+    >>> config = {'commands': {'get_voltage': {'method': 'query', 'message': 'CTRL:VOLT?'}}}
     >>> factory = DeviceFactory()
     >>> device = factory.create('SMU', 'GPIB::16', config)
     >>> device.get_voltage()
@@ -72,12 +72,14 @@ class DeviceFactory:
         :returns: a Device instance
         """
         resource = self.resource_manager.open_resource(resource_name)
+        if 'read_termination' in config:
+            resource.read_termination = config.get('read_termination')
         device = Device(name, resource)
-        for name, kwargs in config.get('routines', {}).items():
-            routine = DeviceRoutine(name, **kwargs)
-            if hasattr(device, routine.name):
-                raise AttributeError(routine.name)
-            setattr(device, routine.name, MethodType(routine, device))
+        for name, kwargs in config.get('commands', {}).items():
+            command = DeviceCommand(name, **kwargs)
+            if hasattr(device, command.name):
+                raise AttributeError(command.name)
+            setattr(device, command.name, MethodType(command, device))
         return device
 
 
@@ -125,16 +127,16 @@ class Device:
     def resource(self):
         return self.__resource
 
-class DeviceRoutine:
-    """Device routine created from configuration.
+class DeviceCommand:
+    """Device command created from configuration.
 
-    :param name: name of routine
+    :param name: name of command
     :param method: name of resource callback
     :param require: regular expression to validate return value (optional)
-    :param description: routine documentation (optional)
+    :param description: command documentation (optional)
 
-    >>> routine = DeviceRoutine('set_voltage', 'query', message='CTRL:VOLT {:.6f}')
-    >>> routine(device, 4.2)
+    >>> command = DeviceCommand('set_voltage', 'query', message='CTRL:VOLT {:.6f}')
+    >>> command(device, 4.2)
     """
 
     def __init__(self, name, method, require=None, description=None, **kwargs):
@@ -145,14 +147,14 @@ class DeviceRoutine:
         self.kwargs = kwargs
 
     def __create_attrs(self, *args, **kwargs):
-        """Create attribute set for routine call."""
+        """Create attribute set for command call."""
         attrs = {}
         attrs.update(self.kwargs)
-        if self.method in ('query', 'write'):
+        if self.method in ('query', 'query_ascii_values', 'query_binary_values', 'write'):
+            if 'message' not in attrs:
+                raise ValueError("missing attribute 'message' for command '{}'".format(self.name))
             attrs['message'] = attrs['message'].format(*args, **kwargs)
-        elif self.method in ('query_ascii_values', 'write_ascii_values'):
-            attrs['values'] = args
-        elif self.method in ('query_binary_values', 'write_binary_values'):
+        elif self.method in ('write_ascii_values', 'write_binary_values'):
             attrs['values'] = args
         return attrs
 
@@ -165,5 +167,5 @@ class DeviceRoutine:
         # Validate return value
         if self.require is not None:
             if not re.match(self.require, result):
-                raise DeviceException("invalid return value: '{result}'".format())
+                raise DeviceException("invalid return value '{}' for '{}'".format(result, self.require))
         return result
