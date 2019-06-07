@@ -75,6 +75,13 @@ class DeviceFactory:
         if 'read_termination' in config:
             resource.read_termination = config.get('read_termination')
         device = Device(name, resource)
+        # Create optional error handler
+        if 'error_parser' in config:
+            error_handler = DeviceErrorHandler(
+                config.get('error_parser', r'(.*)'),
+                config.get('error_messages', {})
+            )
+            device.append_message_handler(error_handler)
         for name, kwargs in config.get('commands', {}).items():
             command = DeviceCommand(name, **kwargs)
             if hasattr(device, command.name):
@@ -105,16 +112,19 @@ class Device:
     )
     """Resource methods exposed by this class."""
 
-    def __init__(self, name, resource):
+    def __init__(self, name, resource, message_handler=None):
         self.__name = name
         self.__resource = resource
         self.__mutex = threading.Lock()
+        self.__message_handlers = []
         # Create thread safe resource API
         for method in self.ResourceAPI:
             def mutex_wrapper(callback, *args, **kwargs):
                 self.__mutex.acquire()
                 result = callback(*args, **kwargs)
                 self.__mutex.release()
+                for handler in self.__message_handlers:
+                    handler.handle(result)
                 return result
             callback = getattr(self.__resource, method)
             setattr(self, method, MethodType(mutex_wrapper, callback))
@@ -126,6 +136,14 @@ class Device:
     @property
     def resource(self):
         return self.__resource
+
+    def append_message_handler(self, handler):
+        """Append a message handler instance. Resource call results are passed
+        to handlers handle() mtehod.
+        >>> DeviceErrorHandler(r'ERR(\d+)').handle("ERR42")
+        Exception: ERR42
+        """
+        self.__message_handlers.append(handler)
 
 class DeviceCommand:
     """Device command created from configuration.
@@ -184,3 +202,23 @@ class DeviceCommand:
             if not re.match(self.require, result):
                 raise DeviceException("invalid return value '{}' for '{}'".format(result, self.require))
         return result
+
+class DeviceMessageHandler:
+
+    def handle(self, message):
+        pass
+
+class DeviceErrorHandler(DeviceMessageHandler):
+
+    def __init__(self, expression, messages=None):
+        self.parser = re.compile(expression)
+        self.messages = messages or {}
+
+    def handle(self, message):
+        result = self.parser.match(format(message))
+        if result:
+            groups = result.groups()
+            if len(groups):
+                if groups[0] in self.messages:
+                    raise DeviceException("{}: {}".format(message, self.messages[code]))
+            raise DeviceException("{}".format(message))

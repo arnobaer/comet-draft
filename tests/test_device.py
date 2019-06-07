@@ -3,8 +3,11 @@ import env
 
 from pyvisa import ResourceManager
 
+from comet.device import DeviceException
 from comet.device import DeviceManager
 from comet.device import DeviceCommand
+from comet.device import DeviceMessageHandler
+from comet.device import DeviceErrorHandler
 
 class DeviceManagerTestCase(unittest.TestCase):
     def setUp(self):
@@ -87,6 +90,34 @@ class DeviceCommandTestCase(DeviceManagerTestCase):
         self.assertEqual(result, 'OK')
         result = command(device, 2.000)
         self.assertEqual(result, 'OK')
+
+class DeviceMessageHandlerTestCase(DeviceManagerTestCase):
+    def runTest(self):
+        """This test depends on the default shipped pyvisa-sim configuration (device 1)."""
+
+        # Default message handler base class
+        handler = DeviceMessageHandler()
+        self.assertEqual(None, handler.handle(42.0))
+
+        # Custom message handler class
+        class MyCustomMessageHandler:
+            def handle(self, message):
+                if message >= 42.0:
+                    raise ValueError(message)
+        handler = MyCustomMessageHandler()
+        self.assertRaises(ValueError, handler.handle, 42.0)
+
+        # Default error handler class
+        handler = DeviceErrorHandler('ERR(\d+)', messages={42: "minor error"})
+        self.assertRaises(DeviceException, handler.handle, 'ERR42')
+
+        # key error_parser automatically creates an error handler
+        device = self.manager.create('SMU', 'ASRL1::INSTR', {
+            'read_termination': '\n',
+            'error_parser': 'ERROR',
+            'error_messages': { 42: "a minor error" }
+        })
+        self.assertRaises(DeviceException, device.query, '?INVLD')
 
 if __name__ == '__main__':
     unittest.main()

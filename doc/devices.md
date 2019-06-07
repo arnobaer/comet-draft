@@ -33,6 +33,9 @@ sequences:
     - set_reset: []
     - set_voltage: [0]
     - set_current: [0.001]
+error_parser: ERR(\d+)
+error_messages:
+  42: a minor error
 ```
 
 ### Commands
@@ -197,3 +200,24 @@ This is equivalent to
 >>> device.set_current(0.001)
 >>> device.set_switches(2, 4, 7)
 ```
+
+### Error handling
+
+To handle returned error codes a regular expression can defined as `error_parser` configuration key.
+
+```yaml
+error_parser: ERR\d+
+```
+
+If the a returned value matches the regular expression, a `DeviceException` is raised.
+
+Additional error messages can be defined to match the error codes (or using a
+capture group to match only a part of the error code).
+
+```yaml
+error_parser: ERR(\-?\d+)
+error_messages:
+  -42: "a curious error"
+```
+
+In case the device returns `ERR-42` a `DeviceException` is raised containing the message `ERR-42: a curious error`.
