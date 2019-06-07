@@ -1,0 +1,30 @@
+name: BrandBox
+read_termination: '\n'
+commands:
+  get_idn:
+    method: query
+    message: *IDN?
+  set_reset:
+    method: write
+    message: *RST
+    description: Reset, all relays to tri-state
+  set_clear:
+    method: write
+    message: *CLS
+  set_a:
+    method: query
+    message: SET:A {}
+    choices: [ON, OFF]
+  set_b:
+    method: query
+    message: SET:B {}
+    choices: [ON, OFF]
+  set_c:
+    method: query
+    message: SET:C {}
+    choices: [ON, OFF]
+  set_open:
+    method: query
+    message: ':OPEN {}'
+    choices: [A1, A2, B1, B2, C1, C2]
+error_parser: Err(\d+)

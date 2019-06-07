@@ -1,0 +1,75 @@
+name: Keithley 2410
+read_termination: '\n'
+commands:
+  set_reset:
+    method: write
+    message: *RST
+  set_source_current:
+    method: write
+    message: SOUR:FUNC CURR {}
+  set_current_range:
+    method: write
+    message: SENS:CURR:RANG {}
+  set_measure_current:
+    method: write
+    message: SENS:FUNC 'CURR'
+  set_measure_voltage:
+    method: write
+    message: SENS:FUNC 'VOLT'
+  set_source_voltage:
+    method: write
+    message: SOUR:FUNC VOLT {}
+  set_voltage_range:
+    method: write
+    message: SOUR:VOLT:RANG {}
+  set_measurement_speed:
+    method: write
+    message: SENS:RESistance:NPLCycles {}
+  set_beep:
+    method: write
+    message: SYST:BEEP:STAT {}
+    choices: [ON, OFF]
+  set_reading_mode:
+    method: write
+    message: FORM:ELEM {}
+  set_reading_count:
+    method: write
+    message: TRIG:COUN {}
+  set_output:
+    method: write
+    message: OUTP {}
+    choices: [ON, OFF]
+  set_voltage_mode:
+    method: write
+    message: SOUR:VOLT:MODE {}
+    choices: [FIXED]
+  set_reset_measure:
+    method: write
+    message: SENS:FUNC:OFF: {}
+    choices: [VOLT, CURR]
+  set_complience:
+    method: write
+    message: SENS:CURR:PROT {:f}
+  set_terminal:
+    method: write
+    message: ROUT:TERM {}
+    choices: [FRONT, REAR]
+  set_voltage:
+    method: write
+    message: SOUR:VOLT:LEV {:f}
+  get_reading:
+    method: query
+    message: READ?
+sequences:
+  reset:
+    - set_output: [OFF]
+    - set_voltage: [0]
+    - set_voltage_mode: [FIXED]
+    - set_reading_count: [1]
+    - set_current_range: [10E-6]
+    - set_terminal: [REAR]
+    - set_voltage_range: [1000.0]
+    - set_reading_mode: [CURR]
+    - set_measurement_speed: [1]
+    - set_complience: [100E-6]
+    - set_beep: [OFF]
