@@ -155,7 +155,7 @@ commands:
   set_switches:
     method: write_ascii_values
     message: CTRL:SWIT
-    converter: i
+    converter: d
 ```
 
 ```python
@@ -213,7 +213,7 @@ To handle returned error codes a regular expression can defined as `error_parser
 error_parser: ERR\d+
 ```
 
-If the a returned value matches the regular expression, a `DeviceException` is raised.
+If a returned value matches the regular expression, a `DeviceException` is raised.
 
 Additional error messages can be defined to match the error codes (or using a
 capture group to match only a part of the error code).
