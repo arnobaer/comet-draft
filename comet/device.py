@@ -2,6 +2,8 @@ import logging
 import re
 import threading
 
+from pyvisa import util as pyvisa_util
+
 from types import MethodType
 
 class DeviceException(Exception):
@@ -139,7 +141,7 @@ class Device:
 
     def append_message_handler(self, handler):
         """Append a message handler instance. Resource call results are passed
-        to handlers handle() mtehod.
+        to handlers handle() method.
         >>> DeviceErrorHandler(r'ERR(\d+)').handle("ERR42")
         Exception: ERR42
         """
@@ -165,7 +167,7 @@ class DeviceCommand:
         self.description = description or ''
         self.kwargs = kwargs
 
-    def __check_choices(self, *args, **kwargs):
+    def __validate_choices(self, *args, **kwargs):
         if self.choices:
             for arg in args:
                 if arg not in self.choices:
@@ -175,20 +177,27 @@ class DeviceCommand:
                     raise ValueError("invalid argument value '{}'".format(v))
 
     def __create_attrs(self, *args, **kwargs):
-        """Create attribute set for command call."""
+        """Create attributes for command call."""
         attrs = {}
+        # Load defaults
         attrs.update(self.kwargs)
+        # Parse string formatting in message
         if self.method in ('query', 'query_ascii_values', 'query_binary_values', 'write'):
             if 'message' not in attrs:
                 raise ValueError("missing attribute 'message' for command '{}'".format(self.name))
-            self.__check_choices(*args, **kwargs)
+            self.__validate_choices(*args, **kwargs)
             try:
-                message = attrs['message'].format(*args, **kwargs)
+                message = attrs.get('message').format(*args, **kwargs)
             except IndexError:
                 raise ValueError("missing arguments for command '{}'".format(self.name))
             attrs['message'] = message
-        elif self.method in ('write_ascii_values', 'write_binary_values'):
+        # Pass args as values
+        if self.method in ('write_ascii_values', 'write_binary_values'):
             attrs['values'] = args
+        # Remove optional converter value for query and read
+        if self.method in ('query', 'read'):
+            if 'converter' in attrs:
+                del attrs['converter']
         return attrs
 
     def __call__(self, device, *args, **kwargs):
@@ -201,6 +210,11 @@ class DeviceCommand:
         if self.require is not None:
             if not re.match(self.require, result):
                 raise DeviceException("invalid return value '{}' for '{}'".format(result, self.require))
+        # Optional pyvisa converter for query and read
+        if self.method in ('query', 'read'):
+            if 'converter' in self.kwargs:
+                converter = self.kwargs.get('converter', 's')
+                result = pyvisa_util.from_ascii_block(result, converter)[0]
         return result
 
 class DeviceMessageHandler:
@@ -215,6 +229,7 @@ class DeviceErrorHandler(DeviceMessageHandler):
         self.messages = messages or {}
 
     def handle(self, message):
+        """Handle device message, raises a DeviceException if on message match."""
         result = self.parser.match(format(message))
         if result:
             groups = result.groups()

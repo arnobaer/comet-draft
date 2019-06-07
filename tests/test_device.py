@@ -84,12 +84,24 @@ class DeviceCommandTestCase(DeviceManagerTestCase):
         self.assertEqual(result, 4.200)
 
         # applying choices
-        kwargs = {'message': '!FREQ {:.2f}', 'choices': [1.0, 2.0]}
+        kwargs = {'message': '!FREQ {:.2f}', 'choices': [1.2, 2.4]}
         command = DeviceCommand('set_frequency', 'query', **kwargs)
-        result = command(device, 1.000)
+        result = command(device, 1.200)
         self.assertEqual(result, 'OK')
-        result = command(device, 2.000)
+        result = command(device, 2.400)
         self.assertEqual(result, 'OK')
+
+        # query converter
+        kwargs = {'message': '?FREQ', 'converter': 'f'}
+        command = DeviceCommand('set_frequency', 'query', **kwargs)
+        result = command(device)
+        self.assertEqual(result, 2.400)
+        command.kwargs['converter'] = 'G'
+        result = command(device)
+        self.assertEqual(result, 2.400)
+        command.kwargs['converter'] = 's'
+        result = command(device)
+        self.assertEqual(result, '2.40')
 
 class DeviceMessageHandlerTestCase(DeviceManagerTestCase):
     def runTest(self):

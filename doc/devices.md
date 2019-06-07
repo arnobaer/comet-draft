@@ -68,11 +68,13 @@ To convert the result to a type other then string, option `converter` can be use
 ```yaml
 commands:
   get_reading:
+    method: query
     message: READ?
     converter: f
 ```
 
-This tries to convert the result to `float` and raises a `DeviceError` exception on failure.
+This tries to convert the result to `float` and raises a `DeviceError` exception
+ on failure.
 
 ```python
 >>> device.get_reading()
@@ -87,14 +89,13 @@ commands:
     message: ':SAMP:BUFF'
     converter: f
     separator: ,
-    container: tuple
     delay: .100
 ```
 
 This is equivalent to
 
 ```python
->>> device.query_ascii_values(':SAMP:BUFF', converter=f, separator=',', container=tuple, delay=.100)
+>>> device.query_ascii_values(':SAMP:BUFF', converter=f, separator=',', delay=.100)
 ```
 
 #### Setters
@@ -122,9 +123,12 @@ More options
 
 | Option | Description |
 | --- | --- |
+| `method` | VISA method used for callback |
 | `message` | Message, string formatting compatible (required) |
-| `method`  | VISA method used for callback |
+| `choices` | List of values accepted as choices for passed arguments |
 | `require` | Regular expression matching returned message |
+| `converter` | Py-VISA type conversion code (s, b, c, d, o, x, e, f, g) |
+| `description` | Description of the command |
 
 ```yaml
 commands:
