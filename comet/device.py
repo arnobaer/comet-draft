@@ -114,7 +114,7 @@ class Device:
     )
     """Resource methods exposed by this class."""
 
-    def __init__(self, name, resource, message_handler=None):
+    def __init__(self, name, resource):
         self.__name = name
         self.__resource = resource
         self.__mutex = threading.Lock()
