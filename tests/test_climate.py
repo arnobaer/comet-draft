@@ -1,6 +1,7 @@
 import pyvisa
 import datetime
 import random
+import time
 
 import env
 from comet.device import Device
@@ -173,6 +174,13 @@ def main():
     print(r)
 
     r = climate.start_program(42)
+    print(r)
+
+    climate.resource.close()
+    time.sleep(10)
+    climate.resource.open()
+
+    r = climate.get_status()
     print(r)
 
 if __name__ == '__main__':

@@ -23,6 +23,42 @@
     </div>
   </div>
 
+  <div class="w3-container" id="comet_params">
+    <div class="w3-content">
+      <h3>Parameters</h3>
+{% for param in params %}
+      <div>{{ param }}</div>
+{% endfor %}
+    </div>
+  </div>
+
+  <div class="w3-container" id="comet_collections">
+    <div class="w3-content">
+      <h3>Collections</h3>
+{% for k, v in app.collections.items() %}
+      <div>{{ k }}: {{ v }}</div>
+{% endfor %}
+    </div>
+  </div>
+
+  <div class="w3-container" id="comet_procedures">
+    <div class="w3-content">
+      <h3>Procedures</h3>
+{% for k, v in app.procedures.items() %}
+      <div>{{ k }}: {{ v }}</div>
+{% endfor %}
+    </div>
+  </div>
+
+  <div class="w3-container" id="comet_attrs">
+    <div class="w3-content">
+      <h3>Attributes</h3>
+{% for k, v in app.attrs.items() %}
+      <div>{{ k }}: {{ v }}</div>
+{% endfor %}
+    </div>
+  </div>
+
   <div class="w3-container">
     <div class="w3-content" ng-controller="measure">
       <div id="plot1"></div>
