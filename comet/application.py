@@ -27,6 +27,7 @@ class Application:
         self.__manager = DeviceManager(rm)
         self.__collections = OrderedDict()
         self.__procedures = OrderedDict()
+        self.__monitoring = OrderedDict()
         self.__alive = False
         self.__running = False
 
@@ -109,6 +110,23 @@ class Application:
         return procedure
 
     @property
+    def monitoring(self):
+        return self.__monitoring
+
+    def register_monitoring(self, name, cls, *args, **kwargs):
+        """Register continious monitoring operations.
+
+        >>> self.register_monitoring('my_mon', MyMonitoring)
+        """
+        if name in self.__monitoring:
+            raise KeyError("Monitoring with name '{}' already registered.".format(name))
+        monitor = cls(self, name, *args, **kwargs)
+        if not isinstance(monitor, Procedure):
+            raise TypeError("Monitoring type must be inherited from class {}".format(Procedure.__class__.__name__))
+        self.__monitoring[name] = monitor
+        return monitor
+
+    @property
     def running(self):
         """Returns True if application is running."""
         return self.__running
@@ -125,23 +143,38 @@ class Application:
         self.stop()
         self.__alive = False
 
-    def run(self):
-        self.__alive = True
+    def setup(self):
         for collection in self.collections.values():
             collection.setup()
         for procedure in self.procedures.values():
             procedure.setup()
+        for monitor in self.monitoring.values():
+            monitor.setup()
+
+    def run(self):
+        self.__alive = True
+        self.setup()
         threads = []
+        for monitor in self.monitoring.values():
+            def wrapper():
+                while self.__alive:
+                    print("MON",monitor.name)
+                    monitor.run()
+            thread = threading.Thread(target=wrapper)
+            threads.append(thread)
+        for thread in threads:
+            thread.start()
         while self.__alive:
             if self.running:
                 # Run procedure stack or default empty behaviour
                 if self.procedures:
                     for procedure in self.procedures.values():
-                        if not procedure.continious:
-                            procedure.run()
+                        logging.warning("running prcedure: %s", procedure.name)
+                        procedure.run()
                 else:
                     time.sleep(1)
                     logging.warning(time.time())
                     logging.warning("running: %s", self.__running)
+                self.stop()
         for thread in threads:
             thread.join()

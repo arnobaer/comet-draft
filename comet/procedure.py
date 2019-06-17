@@ -1,12 +1,11 @@
-
+import time
 
 class Procedure:
 
-    def __init__(self, app, name, continious=False):
+    def __init__(self, app, name):
         super(Procedure, self).__init__()
         self.__app = app
         self.__name = name
-        self.continious = continious
 
     @property
     def app(self):
@@ -15,6 +14,10 @@ class Procedure:
     @property
     def name(self):
         return self.__name
+
+    def wait(self, delay):
+        """Halt and wait for delay."""
+        time.sleep(delay)
 
     def setup(self):
         pass
