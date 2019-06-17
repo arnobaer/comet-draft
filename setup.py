@@ -10,14 +10,15 @@ setup(
     author_email="bernhard.arnold@oeaw.ac.at",
     packages=find_packages(),
     install_requires=[
-        'bottle',
-        'paste',
-        'jinja2',
+        'psutil',
         'numpy',
         'pyvisa',
         'pyvisa-py',
         'pyvisa-sim',
         'pyyaml',
+        'bottle',
+        'paste',
+        'jinja2',
     ],
     entry_points={
         'scripts': [

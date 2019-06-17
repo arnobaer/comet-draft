@@ -1,8 +1,9 @@
-bottle
-paste
-jinja2
+psutil
 numpy
 pyvisa
 pyvisa-py
 pyvisa-sim
 pyyaml
+bottle
+paste
+jinja2
