@@ -41,6 +41,13 @@ class HttpServer:
         def assets(filename):
             return static_file(filename, root=self.assets_path)
 
+        @post('/api/toggle')
+        def start():
+            if not app.running:
+                app.start()
+            else:
+                app.stop()
+            return dict(running=app.running)
 
     @property
     def app(self):
@@ -72,22 +79,35 @@ class HtmlParameter:
         attrs = {}
         attrs['id'] = 'comet_param_{}'.format(param.name)
         attrs['value'] = param.value
-        if self.param.type is float:
-            attrs['type'] = 'number'
-            if param.prec is not None:
-                attrs['step'] = format(1.0 / 10**param.prec)
-        elif self.param.type is int:
-            attrs['type'] = 'number'
-        else:
-            attrs['type'] = 'text'
-        return '<input {}>'.format(self.render_attrs(**attrs))
+        # if self.param.type is float:
+        #     attrs['type'] = 'number'
+        #     if param.prec is not None:
+        #         attrs['step'] = format(1.0 / 10**param.prec)
+        # elif self.param.type is int:
+        #     attrs['type'] = 'number'
+        # else:
+        #     attrs['type'] = 'text'
+        return '<input class="w4-input" style="width:50%" {}>'.format(self.render_attrs(**attrs))
 
     def render(self):
         name = self.param.name
         label = self.param.label
+        step=0.001
+        if self.param.prec:
+            step = 1./10**self.param.prec
         unit = ' [{}]'.format(self.param.unit) if self.param.unit else ''
         input_elem = self.render_input(self.param)
-        template = """<label for="comet_param_{name}">{label}</label><br>{input_elem}{unit}"""
+        template = """
+<script>$( function() {{
+  $( "#comet_param_{name}" ).spinner({{
+    step: {step},
+    numberFormat: "n"
+  }});
+}} );</script>
+
+        <label for="comet_param_{name}">{label}</label><br>{input_elem}{unit}
+
+        """
         return template.format(**locals())
 
     def __str__(self):
