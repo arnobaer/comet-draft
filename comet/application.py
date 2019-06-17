@@ -60,6 +60,10 @@ class Application:
         return param
 
     @property
+    def manager(self):
+        return self.__manager
+
+    @property
     def devices(self):
         return self.__manager.devices
 
@@ -106,15 +110,19 @@ class Application:
 
     @property
     def running(self):
+        """Returns True if application is running."""
         return self.__running
 
     def start(self):
+        """Start application run."""
         self.__running = True
 
     def stop(self):
+        """Stop application run."""
         self.__running = False
 
     def shutdown(self):
+        self.stop()
         self.__alive = False
 
     def run(self):
@@ -125,11 +133,14 @@ class Application:
             procedure.setup()
         threads = []
         while self.__alive:
-            for procedure in self.procedures.values():
-                if procedure.continious:
-                    procedure.run()
-            time.sleep(1)
-            logging.warning(time.time())
-            logging.warning("running: %s", self.__running)
+            # Run procedure stack or default empty behaviour
+            if self.procedures:
+                for procedure in self.procedures.values():
+                    if not procedure.continious:
+                        procedure.run()
+            else:
+                time.sleep(1)
+                logging.warning(time.time())
+                logging.warning("running: %s", self.__running)
         for thread in threads:
             thread.join()

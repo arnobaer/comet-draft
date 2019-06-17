@@ -59,6 +59,7 @@ class HttpServer:
         thread.join()
 
 class HtmlParameter:
+    # TODO: move this to bottle views!
 
     def __init__(self, param):
         self.param = param
