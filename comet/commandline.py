@@ -24,6 +24,7 @@ class CommandLine:
         for name, arg in args.__dict__.items():
             self.app.params.get(name).value = arg
         try:
+            self.app.start()
             self.app.run()
         except KeyboardInterrupt:
             print("\nshutting down, please wait...")

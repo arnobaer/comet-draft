@@ -133,14 +133,15 @@ class Application:
             procedure.setup()
         threads = []
         while self.__alive:
-            # Run procedure stack or default empty behaviour
-            if self.procedures:
-                for procedure in self.procedures.values():
-                    if not procedure.continious:
-                        procedure.run()
-            else:
-                time.sleep(1)
-                logging.warning(time.time())
-                logging.warning("running: %s", self.__running)
+            if self.running:
+                # Run procedure stack or default empty behaviour
+                if self.procedures:
+                    for procedure in self.procedures.values():
+                        if not procedure.continious:
+                            procedure.run()
+                else:
+                    time.sleep(1)
+                    logging.warning(time.time())
+                    logging.warning("running: %s", self.__running)
         for thread in threads:
             thread.join()
