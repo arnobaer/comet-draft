@@ -1,3 +1,5 @@
+import logging
+
 from collections import OrderedDict
 from .utilities import make_label
 
@@ -19,8 +21,8 @@ class Collection:
         return self.__name
 
     def register_handle(self, handle):
-        assert hasattr(handle, 'write')
-        assert callable(handle.write)
+        assert hasattr(handle, 'append')
+        assert callable(handle.append)
         self.handles.append(handle)
 
     def register_metric(self, name, **kwargs):
@@ -32,17 +34,15 @@ class Collection:
     def setup(self):
         pass
 
-    def update(self):
-        pass
-
-    def write(self, **kwargs):
+    def append(self, **kwargs):
+        logging.warning("collection[%s].append(%s)", self.name, kwargs)
         values = OrderedDict()
         for name, metric in self.metrics.items():
             value = kwargs.get(name)
             values[name] = metric.type(value)
-        self.data.append(values.values())
+        self.data.append(list(values.values()))
         for handle in self.handles:
-            handle.write(values)
+            handle.append(values)
 
 class Metric:
 
