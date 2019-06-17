@@ -1,12 +1,22 @@
 from collections import OrderedDict
+from .utilities import make_label
 
 class Collection:
 
-    def __init__(self, name):
-        self.name = name
+    def __init__(self, app, name):
+        self.__app = app
+        self.__name = name
         self.data = []
         self.metrics = OrderedDict()
         self.handles = []
+
+    @property
+    def app(self):
+        return self.__app
+
+    @property
+    def name(self):
+        return self.__name
 
     def register_handle(self, handle):
         assert hasattr(handle, 'write')
@@ -40,4 +50,4 @@ class Metric:
         self.name = name
         self.type = kwargs.get('type', float)
         self.unit = kwargs.get('unit', None)
-        self.label = kwargs.get('label', name.title().split('_'))
+        self.label = kwargs.get('label', make_label(name))

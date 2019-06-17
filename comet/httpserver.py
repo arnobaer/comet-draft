@@ -73,7 +73,8 @@ class HtmlParameter:
         attrs['value'] = param.value
         if self.param.type is float:
             attrs['type'] = 'number'
-            attrs['step'] = format(1.0 / 10**param.prec)
+            if param.prec is not None:
+                attrs['step'] = format(1.0 / 10**param.prec)
         elif self.param.type is int:
             attrs['type'] = 'number'
         else:

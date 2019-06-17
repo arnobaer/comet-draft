@@ -10,3 +10,11 @@ def make_path(*args):
     '/usr/local/lib/python/comet/assets/sample.txt'
     """
     return os.path.join(PACKAGE_PATH, *args)
+
+def make_label(name):
+    """Constructs a pretty label from a name or ID.
+
+    >>>make_label('v_max')
+    'V max'
+    """
+    return name.capitalize().replace('_', ' ')

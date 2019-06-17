@@ -1,5 +1,12 @@
+import time
+import logging
+import threading
 from collections import OrderedDict
 
+import pyvisa
+
+from .device import DeviceManager
+from .parameter import Parameter
 from .collection import Collection
 from .procedure import Procedure
 
@@ -14,9 +21,10 @@ class Application:
 
     def __init__(self, name, backend=None):
         self.__name = name
-        self.__backend = backend or self.default_backend
         self.__attrs = OrderedDict()
         self.__params = OrderedDict()
+        rm = pyvisa.ResourceManager(backend or self.default_backend)
+        self.__manager = DeviceManager(rm)
         self.__collections = OrderedDict()
         self.__procedures = OrderedDict()
         self.__alive = False
@@ -26,11 +34,6 @@ class Application:
     def name(self):
         """Retruns application name."""
         return self.__name
-
-    @property
-    def backend(self):
-        """Returns application PyVisa backend."""
-        return self.__backend
 
     @property
     def attrs(self):
@@ -57,14 +60,28 @@ class Application:
         return param
 
     @property
+    def devices(self):
+        return self.__manager.devices
+
+    def register_device(self, name, resource_name, **kwargs):
+        """Register device."""
+        if name in self.__manager.devices:
+            raise KeyError("Device with name '{}' already registered.".format(name))
+        device = self.__manager.create(name, resource_name, **kwargs)
+        return device
+
+    @property
     def collections(self):
         return self.__collections
 
     def register_collection(self, name, cls, *args, **kwargs):
-        """Register data collection."""
+        """Register data collection.
+
+        >>> self.register_collection('my_coll', MyCollection)
+        """
         if name in self.__collections:
             raise KeyError("Collection with name '{}' already registered.".format(name))
-        collection = cls(name, *args, **kwargs)
+        collection = cls(self, name, *args, **kwargs)
         if not isinstance(collection, Collection):
             raise TypeError("Collection type must be inherited from class {}".format(Collection.__class__.__name__))
         self.__collections[name] = collection
@@ -75,10 +92,13 @@ class Application:
         return self.__procedures
 
     def register_procedure(self, name, cls, *args, **kwargs):
-        """Register operation procedure."""
+        """Register operation procedure.
+
+        >>> self.register_procedure('my_proc', MyProcedure)
+        """
         if name in self.__procedures:
             raise KeyError("Procedure with name '{}' already registered.".format(name))
-        procedure = cls(name, *args, **kwargs)
+        procedure = cls(self, name, *args, **kwargs)
         if not isinstance(procedure, Procedure):
             raise TypeError("Procedure type must be inherited from class {}".format(Procedure.__class__.__name__))
         self.__procedures[name] = procedure
@@ -103,20 +123,13 @@ class Application:
             collection.setup()
         for procedure in self.procedures.values():
             procedure.setup()
-        import time, logging
+        threads = []
         while self.__alive:
+            for procedure in self.procedures.values():
+                if procedure.continious:
+                    procedure.run()
             time.sleep(1)
             logging.warning(time.time())
             logging.warning("running: %s", self.__running)
-
-
-class Parameter:
-    """Application parameter exposed in user interfaces."""
-
-    def __init__(self, name, **kwargs):
-        self.name = name
-        self.type = kwargs.get('type', float)
-        self.value = kwargs.get('default', self.type())
-        self.prec = kwargs.get('prec', 3)
-        self.unit = kwargs.get('unit')
-        self.label = kwargs.get('label', self.name.capitalize().replace('_', ' '))
+        for thread in threads:
+            thread.join()

@@ -1,6 +1,7 @@
 import logging
 import re
 import threading
+from collections import OrderedDict
 
 from pyvisa import util as pyvisa_util
 
@@ -20,7 +21,7 @@ class DeviceManager:
 
     def __init__(self, resource_manager):
         self.__factory = DeviceFactory(resource_manager)
-        self.__devices = {}
+        self.__devices = OrderedDict()
 
     @property
     def factory(self):
@@ -37,7 +38,7 @@ class DeviceManager:
         for device in config.get('devices'):
             self.create(device.get('name'), device)
 
-    def create(self, name, resource_name, config):
+    def create(self, name, resource_name, config={}):
         """Create a new device from configuration."""
         if name in self.devices:
             logging.error("Device '%s' already registered", message)
