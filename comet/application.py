@@ -10,6 +10,9 @@ from .parameter import Parameter
 from .collection import Collection
 from .procedure import Procedure
 
+class StopException(Exception):
+    pass
+
 class Application:
     """Base class for comet applications.
 
@@ -151,17 +154,20 @@ class Application:
         for monitor in self.monitoring.values():
             monitor.setup()
 
-    def run(self):
-        self.__alive = True
-        self.setup()
+    def create_threads(self):
         threads = []
         for monitor in self.monitoring.values():
             def wrapper():
                 while self.__alive:
-                    print("MON",monitor.name)
                     monitor.run()
             thread = threading.Thread(target=wrapper)
             threads.append(thread)
+        return threads
+
+    def run(self):
+        self.__alive = True
+        self.setup()
+        threads = self.create_threads()
         for thread in threads:
             thread.start()
         while self.__alive:
@@ -169,12 +175,22 @@ class Application:
                 # Run procedure stack or default empty behaviour
                 if self.procedures:
                     for procedure in self.procedures.values():
-                        logging.warning("running prcedure: %s", procedure.name)
-                        procedure.run()
+                        logging.warning("running procedure: %s", procedure.name)
+                        procedure.progress = 0
+                        p = threading.Thread(target=procedure.run)
+                        logging.warning("procedure[%s][starting][progress %.3f%%]", procedure.name, procedure.progress)
+                        p.start()
+                        while p.is_alive():
+                            logging.warning("procedure[%s][running][progress %.2f%%]", procedure.name, procedure.progress)
+                            time.sleep(.25)
+                        p.join()
+                        logging.warning("procedure[%s][done][progress %.2f%%]", procedure.name, procedure.progress)
+                        if procedure.progress == 0:
+                            procedure.progress = 100
                 else:
                     time.sleep(1)
                     logging.warning(time.time())
-                    logging.warning("running: %s", self.__running)
-                self.stop()
+                    logging.warning("running: %s", self.running)
+                self.__running = False
         for thread in threads:
             thread.join()

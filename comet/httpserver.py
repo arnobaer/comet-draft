@@ -1,5 +1,6 @@
 import os
 import threading
+import random
 
 from bottle import response, route, post
 from bottle import static_file
@@ -23,7 +24,6 @@ class HttpServer:
 
     def __init__(self, app):
         self.__app = app
-        self.__params = [HtmlParameter(param) for param in self.app.params.values()]
         # Append path for views
         TEMPLATE_PATH.append(self.views_path)
 
@@ -33,7 +33,6 @@ class HttpServer:
             return dict(
                 title=self.app.name,
                 version=__version__,
-                params=self.__params,
                 app=self.app,
             )
 
@@ -41,13 +40,17 @@ class HttpServer:
         def assets(filename):
             return static_file(filename, root=self.assets_path)
 
-        @post('/api/toggle')
+        @post('/api/start')
         def start():
-            if not app.running:
-                app.start()
-            else:
-                app.stop()
-            return dict(running=app.running)
+            app.start()
+
+        @post('/api/stop')
+        def stop():
+            app.stop()
+
+        @route('/api/status')
+        def status():
+            return dict(running=app.running, samples=random.random())
 
     @property
     def app(self):
@@ -64,51 +67,3 @@ class HttpServer:
         print("\nshutting down, please wait...")
         self.__app.shutdown()
         thread.join()
-
-class HtmlParameter:
-    # TODO: move this to bottle views!
-
-    def __init__(self, param):
-        self.param = param
-
-    def render_attrs(self, **kwargs):
-        """Serializes HTML attributes."""
-        return ' '.join(['{}="{}"'.format(k, v) for k, v in kwargs.items()])
-
-    def render_input(self, param):
-        attrs = {}
-        attrs['id'] = 'comet_param_{}'.format(param.name)
-        attrs['value'] = param.value
-        # if self.param.type is float:
-        #     attrs['type'] = 'number'
-        #     if param.prec is not None:
-        #         attrs['step'] = format(1.0 / 10**param.prec)
-        # elif self.param.type is int:
-        #     attrs['type'] = 'number'
-        # else:
-        #     attrs['type'] = 'text'
-        return '<input class="w4-input" style="width:50%" {}>'.format(self.render_attrs(**attrs))
-
-    def render(self):
-        name = self.param.name
-        label = self.param.label
-        step=0.001
-        if self.param.prec:
-            step = 1./10**self.param.prec
-        unit = ' [{}]'.format(self.param.unit) if self.param.unit else ''
-        input_elem = self.render_input(self.param)
-        template = """
-<script>$( function() {{
-  $( "#comet_param_{name}" ).spinner({{
-    step: {step},
-    numberFormat: "n"
-  }});
-}} );</script>
-
-        <label for="comet_param_{name}">{label}</label><br>{input_elem}{unit}
-
-        """
-        return template.format(**locals())
-
-    def __str__(self):
-        return self.render()
