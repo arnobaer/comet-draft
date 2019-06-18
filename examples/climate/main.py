@@ -1,19 +1,21 @@
 import argparse
-import random, time
+import time
 import comet
 
-from comet.filewriter import CSVFileWriter, HephyDBFileWriter
-
 class Application(comet.Application):
+
+    max_sensors = 10
 
     def __init__(self):
         super(Application, self).__init__('CLT', backend='@sim')
         # Set attributes
         self.set('default_op', 'Monty')
         # Register parameters
-        self.register_param('n_sensors', type=int, min=0, max=16, label="# of sensors")
+        self.register_param('n_sensors', type=int, min=0, max=self.max_sensors, label="# of sensors")
+        for i in range(self.max_sensors):
+            self.register_param('sensors_{}'.format(i), type=str, required=True, label="Sensor #{}".format(i))
         self.register_param('operator', default=self.get('default_op'), type=str)
-        self.register_param('v_max', default=800.0, prec=2, unit='V', label="ramp up end voltage")
+        self.register_param('v_max', default=800.0, min=0.0, max=1000.0, prec=4, unit='V', label="ramp up end voltage")
         self.register_param('v_step', default=5.0, prec=1, unit='V', label="stepsize")
         self.register_param('t_ramp', default=1.0, prec=2, unit='sec')
         self.register_param('v_bias', default=600.0, prec=2, unit='V')
@@ -23,9 +25,9 @@ class Application(comet.Application):
         self.register_param('t_tcp_recover', min=0, type=int, label="Wait on TCP reconnect to cliamte chamber")
         # register devices
         self.register_device('climate', 'ASRL1::INSTR')
-        self.register_device('smu', 'ASRL2::INSTR')
-        self.register_device('multi', 'ASRL3::INSTR')
-        self.register_device('shunt', 'ASRL4::INSTR')
+        self.register_device('smu', 'ASRL1::INSTR')
+        self.register_device('multi', 'ASRL1::INSTR')
+        self.register_device('shunt', 'ASRL1::INSTR')
         # Register collections
         self.register_collection('environ', EnvironCollection)
         self.register_collection('iv', IVCollection)
@@ -33,6 +35,8 @@ class Application(comet.Application):
         self.register_monitoring('mon', Monitoring)
         # Register procedures
         self.register_procedure('ramp_up', RampUp)
+        self.register_procedure('ramp_bias', RampBias)
+        self.register_procedure('longterm', Longterm)
         self.register_procedure('ramp_down', RampDown)
 
 class EnvironCollection(comet.Collection):
@@ -41,17 +45,17 @@ class EnvironCollection(comet.Collection):
         self.register_metric('time')
         self.register_metric('temp', unit='°C')
         self.register_metric('humid', unit='%')
-        writer = CSVFileWriter("dump.csv", fieldnames=['time', 'temp', 'humid'])
+        writer = comet.CSVFileWriter("dump.csv", fieldnames=['time', 'temp', 'humid'])
         self.register_handle(writer)
 
 class IVCollection(comet.Collection):
 
     def setup(self):
         self.register_metric('time')
-        self.register_metric('i')
-        self.register_metric('v')
-        self.register_metric('temp')
-        self.register_metric('humid')
+        self.register_metric('i', unit='A')
+        self.register_metric('v', unit='V')
+        self.register_metric('temp', unit='°C')
+        self.register_metric('humid', unit='%')
 
 class Monitoring(comet.Procedure):
 
@@ -60,8 +64,8 @@ class Monitoring(comet.Procedure):
 
     def run(self):
         environ = self.app.collections.get('environ')
-        temp = float(self.app.devices.get('climate').query('?FREQ')) * len(environ.data)
-        humid = float(self.app.devices.get('climate').query('?FREQ')) * len(environ.data)
+        temp = float(self.app.devices.get('climate').query('?FREQ')) * len(environ.data) / 100.
+        humid = float(self.app.devices.get('climate').query('?FREQ')) * len(environ.data) / 100.
         environ.append(time=time.time(), temp=temp, humid=humid)
         self.wait(2)
 
@@ -71,8 +75,7 @@ class RampUp(comet.Procedure):
         pass
 
     def run(self):
-        print("RAMP_UP")
-        writer = HephyDBFileWriter('iv.hephydb')
+        writer = comet.HephyDBFileWriter('iv.hephydb')
         writer.create(["IV","demo","testing"])
         table = writer.create_table('iv_curve', ['time', 'i', 'v', 'temp', 'humid'])
         for _ in range(80):
@@ -87,14 +90,47 @@ class RampUp(comet.Procedure):
             time.sleep(.1)
         print()
 
+class RampBias(comet.Procedure):
+
+    def setup(self):
+        pass
+
+    def run(self):
+        for _ in range(20):
+            environ = self.app.collections.get('environ')
+            iv = self.app.collections.get('iv')
+            i = float(self.app.devices.get('climate').query('?FREQ'))
+            v = float(self.app.devices.get('climate').query('?FREQ'))
+            _, temp, humid = environ.data[-1]
+            iv.append(time=time.time(), i=i, v=v, temp=temp, humid=humid)
+            time.sleep(.1)
+        print()
+        self.wait(2)
+
+class Longterm(comet.Procedure):
+
+    def setup(self):
+        pass
+
+    def run(self):
+        for _ in range(100):
+            environ = self.app.collections.get('environ')
+            iv = self.app.collections.get('iv')
+            i = float(self.app.devices.get('climate').query('?FREQ'))
+            v = float(self.app.devices.get('climate').query('?FREQ'))
+            _, temp, humid = environ.data[-1]
+            iv.append(time=time.time(), i=i, v=v, temp=temp, humid=humid)
+            time.sleep(.1)
+        print()
+        self.wait(2)
+
 class RampDown(comet.Procedure):
 
     def setup(self):
         pass
 
     def run(self):
-        print("RAMP_DOWN")
-        for _ in range(80):
+        for _ in range(60):
             environ = self.app.collections.get('environ')
             iv = self.app.collections.get('iv')
             i = float(self.app.devices.get('climate').query('?FREQ'))
