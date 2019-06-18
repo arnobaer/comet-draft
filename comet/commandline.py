@@ -18,7 +18,7 @@ class CommandLine:
         # Create argument parser for application parameters
         parser = argparse.ArgumentParser()
         for param in self.app.params.values():
-            parser.add_argument('--{}'.format(param.name), metavar=param.unit, type=param.type, default=param.value, help="{} (default {})".format(param.label, param.value))
+            parser.add_argument('--{}'.format(param.name), metavar=param.unit, type=param.type, default=param.value, required=param.required, help="{} (default {})".format(param.label, param.value))
         args = parser.parse_args(args or sys.argv)
         # Assign command line parameters to application
         for name, arg in args.__dict__.items():
