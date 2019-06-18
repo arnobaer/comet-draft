@@ -6,7 +6,23 @@ import time
 import env
 from comet.device import Device
 
-class CTSDevice(Device):
+class BytesDevice(Device):
+
+    def __init__(self, name, resource):
+        super(BytesDevice, self).__init__(name, resource)
+
+    def query_bytes(self, message, n_bytes):
+        """Returns n bytes returned by writing raw query message.
+
+        >>> device.query_bytes('T', 13)
+        b'T120619130943'
+        """
+        self.resource.write_raw(message.encode())
+        result = self.resource.read_bytes(n_bytes).decode()
+        return result
+
+
+class CTSDevice(BytesDevice):
 
     analog_channel_ids = {
         1: 'A0', 2: 'A1', 3: 'A2', 4: 'A3',
@@ -55,22 +71,13 @@ class CTSDevice(Device):
     def __init__(self, name, resource):
         super(CTSDevice, self).__init__(name, resource)
 
-    def query_binary(self, message, n_bytes):
-        """Returns n bytes returned by writing raw query message.
-
-        >>> device.query_binary('T', 13)
-        b'T120619130943'
-        """
-        self.resource.write_raw(message.encode())
-        return self.resource.read_bytes(n_bytes).decode()
-
     def get_time(self):
         """Returns current date and time of device as datetime object.
 
         >>> device.set_time()
         datetime.datetime(2019, 6, 12, 13, 01, 21)
         """
-        result = self.query_binary('T', 13)
+        result = self.query_bytes('T', 13)
         return datetime.datetime.strptime(result, 'T%d%m%y%H%M%S')
 
     def set_time(self, dt):
@@ -79,7 +86,7 @@ class CTSDevice(Device):
         >>> device.set_time(datetime.now())
         datetime.datetime(2019, 6, 12, 13, 12, 35)
         """
-        result = self.query_binary(dt.strftime('t%d%m%y%H%M%S'), 13)
+        result = self.query_bytes(dt.strftime('t%d%m%y%H%M%S'), 13)
         return datetime.datetime.strptime(result, 't%d%m%y%H%M%S')
 
     def get_analog_channel(self, channel):
@@ -90,7 +97,7 @@ class CTSDevice(Device):
         """
         if channel not in self.analog_channel_ids:
             raise ValueError("no such channel number: '{}'".format(channel))
-        result = self.query_binary(self.analog_channel_ids.get(channel), 14)
+        result = self.query_bytes(self.analog_channel_ids.get(channel), 14)
         channel_id, actual, target = result.split()
         return float(actual), float(target)
 
@@ -101,7 +108,7 @@ class CTSDevice(Device):
         """
         if not 1 <= channel <= 7:
             raise ValueError("invalid channel number: '{}'".format(channel))
-        result = self.query_binary("a{} {:05.1f}".format(channel, value), 1)
+        result = self.query_bytes("a{} {:05.1f}".format(channel, value), 1)
         if result != 'a':
             raise RuntimeError("failed to set target for channel '{}'".format(channel))
 
@@ -111,7 +118,7 @@ class CTSDevice(Device):
         >>> device.get_status()
         {'running': False, 'error': None, ''}
         """
-        result = self.query_binary('S', 10)
+        result = self.query_bytes('S', 10)
         running = bool(int(result[1]))
         is_error = bool(int(result[2]))
         channel_states = {channel: bool(int(state)) for channel, state in enumerate(result[3:9])}
@@ -133,7 +140,7 @@ class CTSDevice(Device):
         >>> device.get_program()
         3
         """
-        result = self.query_binary('P', 4)
+        result = self.query_bytes('P', 4)
         value =  int(result[1:])
         return value if value else None
 
@@ -143,7 +150,7 @@ class CTSDevice(Device):
         >>> device.start_program(42)
         42
         """
-        result = self.query_binary('P{:03d}'.format(number), 4)
+        result = self.query_bytes('P{:03d}'.format(number), 4)
         value =  int(result[1:])
         return value if value else None
 
