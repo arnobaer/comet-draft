@@ -3,48 +3,44 @@
 var app = angular.module("comet", []);
 
 app.service('statusService', function($http, $interval) {
-  var data = { running: false };
-//   $interval(function() {
-//     $http.get("/api/status").then(function(response) {
-//       data = response.data;
-//     });
-//   }, 1000);
-  this.data = function() {
-  //   data.running = data.mode == 'running';
-    //return data;
+  var _data = { running: false, samples: 0 };
+  function _update() {
+    $http.get("/api/status").then(function(response) {
+      _data = response.data;
+    });
   }
-  this.toggle = function() {
-    data.running = !data.running;
-    $( ".w4-input" ).spinner( "option", "disabled", !data.running );
+  this.update = _update;
+  $interval(function() {
+    _update();
+  }, 1000);
+  this.data = function() {
+    return _data;
   }
 });
 //
 app.controller("status", function($scope, $http, $interval, statusService) {
-  $interval(function() {
+  function _update() {
     var data = statusService.data();
     // $scope.mode = data.mode;
-    // $scope.running = data.mode == 'running';
-    // $scope.samples = data.samples;
-  }, 500);
+    $scope.running = data.running;
+    $scope.samples = data.samples;
+  }
+  this.update = _update;
+  $interval(function() {
+    _update();
+  }, 10);
 });
 
 app.controller("control", function($scope, $http, $interval, statusService) {
   $scope.start = function() {
-    $http.post("/api/toggle");
-    statusService.toggle();
+    $http.post("/api/start");
+    $scope.running = true;
+    statusService.update();
   };
   $scope.stop = function() {
-    $http.post("/api/toggle");
-    statusService.toggle();
-  };
-  $scope.resetA = function() {
-    $http.post("/api/reset/a");
-  };
-  $scope.resetB = function() {
-    $http.post("/api/reset/b");
-  };
-  $scope.gain = function() {
-    $http.post("/api/gain");
+    $http.post("/api/stop");
+    $scope.running = false;
+    statusService.update();
   };
   // $interval(function() {
   //   var data = statusService.data();

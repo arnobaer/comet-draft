@@ -4,7 +4,7 @@
   <div class="w3-container" ng-controller="status" style="margin-top: 72px !important;">
 {% raw %}
     <div class="w3-content w3-light-gray w3-padding">
-      <p>Mode: <strong>{{mode}}</strong></p>
+      <p>Mode: <strong>{{running}}</strong></p>
       <p>Acquired samples: {{samples}}</p>
     </div>
     <div class="w3-content w3-margin-bottom">
@@ -15,19 +15,36 @@
 
   <div class="w3-container">
     <div class="w3-content" ng-controller="control">
-      <button class="w3-red w3-button" ng-click="start()" ng-hide="running">Start</button>
-      <button class="w3-theme w3-button" ng-click="resetA()">Reset A</button>
-      <button class="w3-theme w3-button" ng-click="resetB()">Reset B</button>
-      <button class="w3-theme w3-button" ng-click="gain()">Gain</button>
-      <button class="w3-red w3-button" ng-click="stop()" ng-show="running">Stop</button>
+      <button id="api_start" class="w3-red w3-button" ng-click="start()" ng-hide="running">Start</button>
+      <button id="api_stop" class="w3-red w3-button" ng-click="stop()" ng-show="running">Stop</button>
     </div>
   </div>
 
   <div class="w3-container" id="comet_params">
     <div class="w3-content">
       <h3>Parameters</h3>
-{% for param in params %}
-      <div>{{ param }}</div>
+{% for param in app.params.values() %}
+      <div>
+{% if param.is_numeric %}
+        <script>$(function() {
+          $( "#param_{{ param.name }}" ).spinner({
+            disabled: false,
+{% if param.step is not none %}
+            step: {{ param.step }},
+{% endif %}
+{% if param.min is not none %}
+            min: {{ param.min }},
+{% endif %}
+{% if param.max is not none %}
+            max: {{ param.max }},
+{% endif %}
+            numberFormat: "n{{ param.prec or '0'}}"
+          });
+        });</script>
+{% endif %}
+        <label for="param_{{ param.name }}">{{ param.label }}</label><br>
+        <input id="param_{{ param.name }}" {% if not param.required %}required{% endif %} {% if not param.is_numeric %}style="padding: 6px;" class="ui-spinner ui-corner-all ui-widget ui-widget-content" {% endif %}name="{{ param.name }}" value="{{ param.value }}">{% if param.unit %} [{{ param.unit }}]{% endif %}
+      </div>
 {% endfor %}
     </div>
   </div>
@@ -44,8 +61,8 @@
   <div class="w3-container" id="comet_procedures">
     <div class="w3-content">
       <h3>Procedures</h3>
-{% for k, v in app.procedures.items() %}
-      <div>{{ k }}: {{ v }}</div>
+{% for k, proc in app.procedures.items() %}
+      <div>{{ proc.label}} {{ proc }}</div>
 {% endfor %}
     </div>
   </div>

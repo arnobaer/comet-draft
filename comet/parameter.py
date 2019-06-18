@@ -3,16 +3,22 @@ from .utilities import make_label
 class Parameter:
     """Application parameter exposed in user interfaces."""
 
+    numeric_types = [int, float]
+
     def __init__(self, name, **kwargs):
         self.__name = name
         self.__type = kwargs.get('type', float)
         self.__value = kwargs.get('default', self.type())
         self.min = kwargs.get('min')
         self.max = kwargs.get('max')
-        self.step = kwargs.get('step')
         self.prec = kwargs.get('prec')
+        self.step = kwargs.get('step')
         self.unit = kwargs.get('unit')
+        self.required = kwargs.get('required') or False
         self.label = kwargs.get('label', make_label(name))
+        # Calculate step for a given precision
+        if self.prec is not None and self.step is None:
+            self.step = 1./10**self.prec
         # Validate input
         if self.min is not None and self.max is not None and self.min > self.max:
             raise ValueError("'min' argument must be less or equal (<=) 'max' argument")
@@ -21,11 +27,18 @@ class Parameter:
 
     @property
     def name(self):
+        """Returns parameter name."""
         return self.__name
 
     @property
     def type(self):
+        """Retruns parameter type."""
         return self.__type
+
+    @property
+    def is_numeric(self):
+        """Retruns True if parameter type is numeric (int, float) else False."""
+        return self.type in self.numeric_types
 
     @property
     def value(self):
