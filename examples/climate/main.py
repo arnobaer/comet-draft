@@ -72,13 +72,13 @@ class Monitoring(comet.Procedure):
 class RampUp(comet.Procedure):
 
     def setup(self):
-        pass
-
-    def run(self):
         writer = comet.HephyDBFileWriter('iv.hephydb')
         writer.create(["IV","demo","testing"])
-        table = writer.create_table('iv_curve', ['time', 'i', 'v', 'temp', 'humid'])
-        for _ in range(80):
+        self.table = writer.create_table('iv_curve', ['time', 'i', 'v', 'temp', 'humid'])
+
+    def run(self):
+        for step in range(80):
+            if not self.app.running: return
             environ = self.app.collections.get('environ')
             iv = self.app.collections.get('iv')
             i = float(self.app.devices.get('climate').query('?FREQ'))
@@ -86,8 +86,9 @@ class RampUp(comet.Procedure):
             _, temp, humid = environ.data[-1]
             t = time.time()
             iv.append(time=t, i=i, v=v, temp=temp, humid=humid)
-            table.append(dict(time=t, i=i, v=v, temp=temp, humid=humid))
+            self.table.append(dict(time=t, i=i, v=v, temp=temp, humid=humid))
             time.sleep(.1)
+            self.progress = 100/80*step
         print()
 
 class RampBias(comet.Procedure):
@@ -96,7 +97,8 @@ class RampBias(comet.Procedure):
         pass
 
     def run(self):
-        for _ in range(20):
+        for step in range(20):
+            if not self.app.running: return
             environ = self.app.collections.get('environ')
             iv = self.app.collections.get('iv')
             i = float(self.app.devices.get('climate').query('?FREQ'))
@@ -104,6 +106,7 @@ class RampBias(comet.Procedure):
             _, temp, humid = environ.data[-1]
             iv.append(time=time.time(), i=i, v=v, temp=temp, humid=humid)
             time.sleep(.1)
+            self.progress = 100/80*step
         print()
         self.wait(2)
 
@@ -113,7 +116,8 @@ class Longterm(comet.Procedure):
         pass
 
     def run(self):
-        for _ in range(100):
+        for step in range(101):
+            if not self.app.running: return
             environ = self.app.collections.get('environ')
             iv = self.app.collections.get('iv')
             i = float(self.app.devices.get('climate').query('?FREQ'))
@@ -121,6 +125,7 @@ class Longterm(comet.Procedure):
             _, temp, humid = environ.data[-1]
             iv.append(time=time.time(), i=i, v=v, temp=temp, humid=humid)
             time.sleep(.1)
+            self.progress = 100/80*step
         print()
         self.wait(2)
 
@@ -130,7 +135,8 @@ class RampDown(comet.Procedure):
         pass
 
     def run(self):
-        for _ in range(60):
+        for step in range(60):
+            print("STOPPED", flush=True)
             environ = self.app.collections.get('environ')
             iv = self.app.collections.get('iv')
             i = float(self.app.devices.get('climate').query('?FREQ'))
@@ -138,6 +144,7 @@ class RampDown(comet.Procedure):
             _, temp, humid = environ.data[-1]
             iv.append(time=time.time(), i=i, v=v, temp=temp, humid=humid)
             time.sleep(.1)
+            self.progress = 100/60*step
         print()
         self.wait(2)
 
