@@ -1,6 +1,7 @@
 import os
 import threading
 import random
+import time
 
 from bottle import response, route, post
 from bottle import static_file
@@ -50,7 +51,7 @@ class HttpServer:
 
         @route('/api/status')
         def status():
-            return dict(running=app.running, samples=random.random())
+            return dict(running=app.running, state=app.current_state or 'halted', samples=random.random())
 
     @property
     def app(self):

@@ -3,10 +3,14 @@
 var app = angular.module("comet", []);
 
 app.service('statusService', function($http, $interval) {
-  var _data = { running: false, samples: 0 };
+  var _data = { running: false, state: null, samples: 0, ok: false };
   function _update() {
-    $http.get("/api/status").then(function(response) {
+    $http.get("/api/status")
+    .then(function(response) {
       _data = response.data;
+      $('.w3-content').show();
+    }, function(response) {
+      $('.w3-content').hide();
     });
   }
   this.update = _update;
@@ -23,29 +27,35 @@ app.controller("status", function($scope, $http, $interval, statusService) {
     var data = statusService.data();
     // $scope.mode = data.mode;
     $scope.running = data.running;
+    $scope.state = data.state;
     $scope.samples = data.samples;
   }
   this.update = _update;
   $interval(function() {
     _update();
-  }, 10);
+  }, 100);
 });
 
 app.controller("control", function($scope, $http, $interval, statusService) {
   $scope.start = function() {
     $http.post("/api/start");
     $scope.running = true;
+    $('#controls').prop('disabled', true);
     statusService.update();
   };
   $scope.stop = function() {
     $http.post("/api/stop");
     $scope.running = false;
+    $('#controls').prop('disabled', false);
     statusService.update();
   };
   // $interval(function() {
   //   var data = statusService.data();
   //   $scope.running = data.running;
   // }, 500);
+});
+
+app.controller("states", function($scope, $http, $interval, statusService) {
 });
 
 app.controller("measure", function($scope, $http, $interval) {

@@ -8,7 +8,7 @@ import pyvisa
 from .device import DeviceManager
 from .parameter import Parameter
 from .collection import Collection
-from .procedure import Procedure
+from .state import State
 
 class StopException(Exception):
     pass
@@ -29,10 +29,11 @@ class Application:
         rm = pyvisa.ResourceManager(backend or self.default_backend)
         self.__manager = DeviceManager(rm)
         self.__collections = OrderedDict()
-        self.__procedures = OrderedDict()
+        self.__states = OrderedDict()
         self.__monitoring = OrderedDict()
         self.__alive = False
         self.__running = False
+        self.current_state = None
 
     @property
     def name(self):
@@ -96,21 +97,21 @@ class Application:
         return collection
 
     @property
-    def procedures(self):
-        return self.__procedures
+    def states(self):
+        return self.__states
 
-    def register_procedure(self, name, cls, *args, **kwargs):
-        """Register operation procedure.
+    def register_state(self, name, cls, *args, **kwargs):
+        """Register operation state.
 
-        >>> self.register_procedure('my_proc', MyProcedure)
+        >>> self.register_state('my_proc', MyState)
         """
-        if name in self.__procedures:
-            raise KeyError("Procedure with name '{}' already registered.".format(name))
-        procedure = cls(self, name, *args, **kwargs)
-        if not isinstance(procedure, Procedure):
-            raise TypeError("Procedure type must be inherited from class {}".format(Procedure.__class__.__name__))
-        self.__procedures[name] = procedure
-        return procedure
+        if name in self.__states:
+            raise KeyError("State with name '{}' already registered.".format(name))
+        state = cls(self, name, *args, **kwargs)
+        if not isinstance(state, State):
+            raise TypeError("State type must be inherited from class {}".format(State.__class__.__name__))
+        self.__states[name] = state
+        return state
 
     @property
     def monitoring(self):
@@ -124,8 +125,8 @@ class Application:
         if name in self.__monitoring:
             raise KeyError("Monitoring with name '{}' already registered.".format(name))
         monitor = cls(self, name, *args, **kwargs)
-        if not isinstance(monitor, Procedure):
-            raise TypeError("Monitoring type must be inherited from class {}".format(Procedure.__class__.__name__))
+        if not isinstance(monitor, State):
+            raise TypeError("Monitoring type must be inherited from class {}".format(State.__class__.__name__))
         self.__monitoring[name] = monitor
         return monitor
 
@@ -149,8 +150,8 @@ class Application:
     def setup(self):
         for collection in self.collections.values():
             collection.setup()
-        for procedure in self.procedures.values():
-            procedure.setup()
+        for state in self.states.values():
+            state.setup()
         for monitor in self.monitoring.values():
             monitor.setup()
 
@@ -172,25 +173,27 @@ class Application:
             thread.start()
         while self.__alive:
             if self.running:
-                # Run procedure stack or default empty behaviour
-                if self.procedures:
-                    for procedure in self.procedures.values():
-                        logging.warning("running procedure: %s", procedure.name)
-                        procedure.progress = 0
-                        p = threading.Thread(target=procedure.run)
-                        logging.warning("procedure[%s][starting][progress %.3f%%]", procedure.name, procedure.progress)
+                # Run state stack or default empty behaviour
+                if self.states:
+                    for state in self.states.values():
+                        self.current_state = state.name
+                        logging.warning("running state: %s", state.name)
+                        state.progress = 0
+                        p = threading.Thread(target=state.run)
+                        logging.warning("state[%s][starting][progress %.3f%%]", state.name, state.progress)
                         p.start()
                         while p.is_alive():
-                            logging.warning("procedure[%s][running][progress %.2f%%]", procedure.name, procedure.progress)
+                            logging.warning("state[%s][running][progress %.2f%%]", state.name, state.progress)
                             time.sleep(.25)
                         p.join()
-                        logging.warning("procedure[%s][done][progress %.2f%%]", procedure.name, procedure.progress)
-                        if procedure.progress == 0:
-                            procedure.progress = 100
+                        logging.warning("state[%s][done][progress %.2f%%]", state.name, state.progress)
+                        if state.progress == 0:
+                            state.progress = 100
                 else:
                     time.sleep(1)
                     logging.warning(time.time())
                     logging.warning("running: %s", self.running)
                 self.__running = False
+                self.current_state = None
         for thread in threads:
             thread.join()

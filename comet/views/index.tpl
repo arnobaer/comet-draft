@@ -4,7 +4,7 @@
   <div class="w3-container" ng-controller="status" style="margin-top: 72px !important;">
 {% raw %}
     <div class="w3-content w3-light-gray w3-padding">
-      <p>Mode: <strong>{{running}}</strong></p>
+      <p>State: <strong>{{state}}</strong></p>
       <p>Acquired samples: {{samples}}</p>
     </div>
     <div class="w3-content w3-margin-bottom">
@@ -17,18 +17,14 @@
     <div class="w3-content" ng-controller="control">
       <button id="api_start" class="w3-red w3-button" ng-click="start()" ng-hide="running">Start</button>
       <button id="api_stop" class="w3-red w3-button" ng-click="stop()" ng-show="running">Stop</button>
-    </div>
-  </div>
 
-  <div class="w3-container" id="comet_params">
-    <div class="w3-content">
       <h3>Parameters</h3>
+      <div id="controls">
 {% for param in app.params.values() %}
       <div>
 {% if param.is_numeric %}
         <script>$(function() {
           $( "#param_{{ param.name }}" ).spinner({
-            disabled: false,
 {% if param.step is not none %}
             step: {{ param.step }},
 {% endif %}
@@ -47,6 +43,7 @@
       </div>
 {% endfor %}
     </div>
+    </div>
   </div>
 
   <div class="w3-container" id="comet_collections">
@@ -58,11 +55,11 @@
     </div>
   </div>
 
-  <div class="w3-container" id="comet_procedures">
-    <div class="w3-content">
-      <h3>Procedures</h3>
-{% for k, proc in app.procedures.items() %}
-      <div>{{ proc.label}} {{ proc }}</div>
+  <div class="w3-container" id="comet_states">
+    <div class="w3-content" ng-controller="states">
+      <h3>States</h3>
+{% for k, proc in app.states.items() %}
+      <div class="w3-bar w3-padding w3-grey" ng-class="">{{ proc.label}} {{ proc }}</div>
 {% endfor %}
     </div>
   </div>

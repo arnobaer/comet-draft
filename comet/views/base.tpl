@@ -32,8 +32,8 @@
   <!-- footer -->
   <div class="w3-container w3-light-grey w3-margin-top">
     <div class="w3-content w3-text-grey">
-      <p>Control &amp; Measurement Toolkit</p>
-      <p>{{ title|upper }}, version {{ version }}</p>
+      <p>COMET | Control &amp; Measurement Toolkit <span class="w3-right"><a href="https://github.com/arnobaer/comet/" target="_blank">fork me on github</a></spa></p>
+      <p>Version {{ version }}</p>
     </div>
   </div>
 

@@ -1,4 +1,3 @@
-import argparse
 import time
 import comet
 
@@ -33,11 +32,11 @@ class Application(comet.Application):
         self.register_collection('iv', IVCollection)
         # Register continous monitoring
         self.register_monitoring('mon', Monitoring)
-        # Register procedures
-        self.register_procedure('ramp_up', RampUp)
-        self.register_procedure('ramp_bias', RampBias)
-        self.register_procedure('longterm', Longterm)
-        self.register_procedure('ramp_down', RampDown)
+        # Register states
+        self.register_state('ramp_up', RampUp)
+        self.register_state('ramp_bias', RampBias)
+        self.register_state('longterm', Longterm)
+        self.register_state('ramp_down', RampDown)
 
 class EnvironCollection(comet.Collection):
 
@@ -57,7 +56,7 @@ class IVCollection(comet.Collection):
         self.register_metric('temp', unit='°C')
         self.register_metric('humid', unit='%')
 
-class Monitoring(comet.Procedure):
+class Monitoring(comet.State):
 
     def setup(self):
         pass
@@ -69,7 +68,7 @@ class Monitoring(comet.Procedure):
         environ.append(time=time.time(), temp=temp, humid=humid)
         self.wait(2)
 
-class RampUp(comet.Procedure):
+class RampUp(comet.State):
 
     def setup(self):
         writer = comet.HephyDBFileWriter('iv.hephydb')
@@ -91,7 +90,7 @@ class RampUp(comet.Procedure):
             self.progress = 100/80*step
         print()
 
-class RampBias(comet.Procedure):
+class RampBias(comet.State):
 
     def setup(self):
         pass
@@ -110,7 +109,7 @@ class RampBias(comet.Procedure):
         print()
         self.wait(2)
 
-class Longterm(comet.Procedure):
+class Longterm(comet.State):
 
     def setup(self):
         pass
@@ -129,7 +128,7 @@ class Longterm(comet.Procedure):
         print()
         self.wait(2)
 
-class RampDown(comet.Procedure):
+class RampDown(comet.State):
 
     def setup(self):
         pass
