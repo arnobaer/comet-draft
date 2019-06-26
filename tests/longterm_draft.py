@@ -10,26 +10,26 @@ class Application(comet.Application):
         self.set_attr('description', 'Long term measurement for silicon sensors')
         self.set_attr('version', '1.0.0')
         # register params
-        self.register_param('v_max', type=float, default=100.0, min=0.0, max=1000.0, unit='V', label='V max')
-        self.register_param('v_longterm', type=float, default=80.0, min=0.0, max=1000.0, unit='V', label='V longterm')
-        self.register_param('ramp_delay', type=float, default=.25, min=.05, max=5.0, unit='s') # label defaults: "Ramp delay"
-        self.register_param('i_compliance', type=float, default=1.5, max=2.0, unit='A', label='I comp.')
-        self.register_param('run_mode', default='normal', choices=('normal', 'fast')) # label defaults: "Run mode"
+        self.add_param('v_max', type=float, default=100.0, min=0.0, max=1000.0, unit='V', label='V max')
+        self.add_param('v_longterm', type=float, default=80.0, min=0.0, max=1000.0, unit='V', label='V longterm')
+        self.add_param('ramp_delay', type=float, default=.25, min=.05, max=5.0, unit='s') # label defaults: "Ramp delay"
+        self.add_param('i_compliance', type=float, default=1.5, max=2.0, unit='A', label='I comp.')
+        self.add_param('run_mode', default='normal', choices=('normal', 'fast')) # label defaults: "Run mode"
         # register devices
-        self.register_device('climate', type='cts2200')
-        self.register_device('smu', type='k2700')
-        self.register_device('multi', type='k2100')
-        self.register_device('shunt', type='shuntbox')
+        self.add_device('climate', type='cts2200')
+        self.add_device('smu', type='k2700')
+        self.add_device('multi', type='k2100')
+        self.add_device('shunt', type='shuntbox')
         # register data collections
-        self.register_collection(EnvCollection('environ', continious=True)) # not reset on [start]
-        self.register_collection(IVCollection('iv')) # content will be cleared on every [start]
+        self.add_collection(EnvCollection('environ', continious=True)) # not reset on [start]
+        self.add_collection(IVCollection('iv')) # content will be cleared on every [start]
         # create continious procedure
-        self.register_procedure(Monitoring(), continious=True) # starts immediately
+        self.add_procedure(Monitoring(), continious=True) # starts immediately
         # create sequence of procedures
-        self.register_procedure(RampUp()) # executed on [start]
-        self.register_procedure(RampDownLongterm())
-        self.register_procedure(Longterm())
-        self.register_procedure(RampDownFinal())
+        self.add_procedure(RampUp()) # executed on [start]
+        self.add_procedure(RampDownLongterm())
+        self.add_procedure(Longterm())
+        self.add_procedure(RampDownFinal())
 
         # every [start] creates a new data directory containing all logs
         # ~/CometData/QXS_2019_06_11_001/iv_curve.csv
@@ -40,9 +40,9 @@ class EnvCollection(comet.Collection):
 
     def setup(self):
         climate = self.devices.get('climate')
-        self.register_metric('time')
-        self.register_metric('temp')
-        self.register_metric('humid')
+        self.add_metric('time')
+        self.add_metric('temp')
+        self.add_metric('humid')
 
     def update(self):
         climate = self.devices.get('climate')
@@ -53,17 +53,17 @@ class EnvCollection(comet.Collection):
 class IVCollection(comet.Collection):
 
     def setup(self):
-        self.register_metric('time')
-        self.register_metric('i', unit='A')
-        self.register_metric('v', unit='V')
-        self.register_metric('temp', unit='degC')
-        self.register_metric('humid', unit='perc')
+        self.add_metric('time')
+        self.add_metric('i', unit='A')
+        self.add_metric('v', unit='V')
+        self.add_metric('temp', unit='degC')
+        self.add_metric('humid', unit='perc')
 
         writer = comet.HephyDbFileWriter('iv_curve.csv') # comet.FileWriter is bond to CometData/ path
         writer.tags.add('IV')
         writer.tags.add(self.attrs.get('name'))
         iv_table = writer.create_table(name='IV', columns=self.metrics.values())
-        self.register_handler(iv_table.append) # appends data on every write()
+        self.add_handler(iv_table.append) # appends data on every write()
 
     def update(self):
         multi = self.device.get('multi')

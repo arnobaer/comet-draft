@@ -1,21 +1,13 @@
 import time
+from .component import Component
 
-class State:
+class Procedure(Component):
 
     def __init__(self, app, name):
-        super(State, self).__init__()
-        self.__app = app
-        self.__name = name
+        super(Procedure, self).__init__(app, name)
         self.__label = None
         self.__progress = 0.0
-
-    @property
-    def app(self):
-        return self.__app
-
-    @property
-    def name(self):
-        return self.__name
+        self.__alive = True
 
     @property
     def label(self):
@@ -31,11 +23,14 @@ class State:
         """Set state progress in percent."""
         self.__progress = max(0.0, min(100.0, float(percent)))
 
+    def quit(self):
+        self.__alive = False
+
     def wait(self, delay):
         """Halt and wait for delay."""
         time.sleep(delay)
 
-    def setup(self):
+    def configure(self):
         pass
 
     def run(self):

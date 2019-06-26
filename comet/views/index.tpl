@@ -55,10 +55,10 @@
     </div>
   </div>
 
-  <div class="w3-container" id="comet_states">
-    <div class="w3-content" ng-controller="states">
+  <div class="w3-container" id="comet_procedures">
+    <div class="w3-content" ng-controller="procedures">
       <h3>States</h3>
-{% for k, proc in app.states.items() %}
+{% for k, proc in app.procedures.items() %}
       <div class="w3-bar w3-padding w3-grey" ng-class="">{{ proc.label}} {{ proc }}</div>
 {% endfor %}
     </div>

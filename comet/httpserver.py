@@ -49,9 +49,17 @@ class HttpServer:
         def stop():
             app.stop()
 
+        @post('/api/pause')
+        def pause():
+            app.pause()
+
+        @post('/api/unpause')
+        def unpause():
+            app.unpause()
+
         @route('/api/status')
         def status():
-            return dict(running=app.running, state=app.current_state or 'halted', samples=random.random())
+            return dict(running=app.state=='running', state=app.state, samples=random.random())
 
     @property
     def app(self):
@@ -66,5 +74,5 @@ class HttpServer:
         thread.start()
         run(**kwargs)
         print("\nshutting down, please wait...")
-        self.__app.shutdown()
+        self.__app.quit()
         thread.join()

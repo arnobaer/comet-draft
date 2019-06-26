@@ -12,16 +12,16 @@ class MyProcedure(Procedure):
     def run(self):
         for name, param in self.app.params.items():
             print(name, param.value)
-        self.app.shutdown()
+        self.app.quit()
 
 class MyApplication(Application):
 
     def __init__(self):
         super(MyApplication, self).__init__('MyApp')
-        self.register_param('v_min', default=0.0, min=0.0, max=100.0, unit='V')
-        self.register_param('v_max', default=100.0, min=0.0, max=100.0, unit='V')
-        self.register_param('i_compliance', default=1.0, min=0.0, max=2.0, unit='A', label="I compl.")
-        self.register_procedure('list_params', MyProcedure)
+        self.add_param('v_min', default=0.0, min=0.0, max=100.0, unit='V')
+        self.add_param('v_max', default=100.0, min=0.0, max=100.0, unit='V')
+        self.add_param('i_compliance', default=1.0, min=0.0, max=2.0, unit='A', label="I compl.")
+        self.add_procedure('list_params', MyProcedure)
 
 class CommandLineTest(unittest.TestCase):
 

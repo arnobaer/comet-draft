@@ -1,53 +1,54 @@
 import logging
-
 from collections import OrderedDict
-from .utilities import make_label
 
-class Collection:
+from .component import Component
+from .metric import Metric
+
+class Collection(Component):
 
     def __init__(self, app, name):
-        self.__app = app
-        self.__name = name
-        self.data = []
-        self.metrics = OrderedDict()
-        self.handles = []
+        super(Collection, self).__init__(app, name)
+        self.__records = []
+        self.__metrics = OrderedDict()
+        self.__handles = []
 
     @property
-    def app(self):
-        return self.__app
+    def metrics(self):
+        return OrderedDict(self.__metrics)
 
     @property
-    def name(self):
-        return self.__name
+    def handles(self):
+        return self.__handles
 
-    def register_handle(self, handle):
+    def __len__(self):
+        return len(self.__records)
+
+    def snapshot(self, n):
+        """Retruns a snapshot of recent data records."""
+        return self.__records[-abs(n):]
+
+    def add_handle(self, handle):
         assert hasattr(handle, 'append')
         assert callable(handle.append)
-        self.handles.append(handle)
+        self.__handles.append(handle)
+        return handle
 
-    def register_metric(self, name, **kwargs):
-        assert name not in self.metrics
+    def add_metric(self, name, **kwargs):
+        if name in self.__metrics:
+            raise ValueError("Metric name already exists: '{}'".format(name))
         metric = Metric(name, **kwargs)
-        self.metrics[name] = metric
+        self.__metrics[name] = metric
         return metric
 
-    def setup(self):
+    def configure(self):
         pass
 
     def append(self, **kwargs):
         logging.warning("collection[%s].append(%s)", self.name, kwargs)
-        values = OrderedDict()
-        for name, metric in self.metrics.items():
+        record = OrderedDict()
+        for name, metric in self.__metrics.items():
             value = kwargs.get(name)
-            values[name] = metric.type(value)
-        self.data.append(list(values.values()))
-        for handle in self.handles:
-            handle.append(values)
-
-class Metric:
-
-    def __init__(self, name, **kwargs):
-        self.name = name
-        self.type = kwargs.get('type', float)
-        self.unit = kwargs.get('unit', None)
-        self.label = kwargs.get('label', make_label(name))
+            record[name] = metric.type(value)
+        self.__records.append(record.values())
+        for handle in self.__handles:
+            handle.append(record)

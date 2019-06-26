@@ -55,7 +55,7 @@ app.controller("control", function($scope, $http, $interval, statusService) {
   // }, 500);
 });
 
-app.controller("states", function($scope, $http, $interval, statusService) {
+app.controller("procedures", function($scope, $http, $interval, statusService) {
 });
 
 app.controller("measure", function($scope, $http, $interval) {
