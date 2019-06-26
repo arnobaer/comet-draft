@@ -6,9 +6,9 @@ from collections import OrderedDict
 from statemachine import StateMachine, State
 import pyvisa
 
+from .parameter import Parameter
 from .device import DeviceManager
 from .component import ComponentManager
-from .parameter import Parameter
 from .collection import Collection
 from .procedure import Procedure
 

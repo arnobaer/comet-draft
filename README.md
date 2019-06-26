@@ -4,8 +4,14 @@
 
 Running the technical demonstrator
 
+    # build javascript web-app
+    $ npm install -g parcel
+    $ cd comet/assets
+    $ npm run build
+    $ cd -
+
     $ pip install -r requirements.txt
-    $ python tests/example.py --port 8080
+    $ python examples/climate/main.py --port 8080
 
 Use your web browser to access http://localhost:8080/
 
