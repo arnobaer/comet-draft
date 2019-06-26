@@ -11,6 +11,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'psutil',
+        'python-statemachine',
         'numpy',
         'pyvisa',
         'pyvisa-py',
