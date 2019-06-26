@@ -5,9 +5,6 @@ import time
 
 from bottle import response, route, post
 from bottle import static_file
-from bottle import jinja2_view as view
-from bottle import jinja2_template as template
-from bottle import TEMPLATE_PATH
 from bottle import run
 
 from . import utilities
@@ -20,26 +17,15 @@ class HttpServer:
     default_port = 8080
     default_server = 'paste'
 
-    assets_path = utilities.make_path('assets')
-    views_path = utilities.make_path('views')
+    assets_path = utilities.make_path('assets/dist')
 
     def __init__(self, app):
         self.__app = app
-        # Append path for views
-        TEMPLATE_PATH.append(self.views_path)
 
         @route('/')
-        @view('index')
-        def index():
-            return dict(
-                title=self.app.name,
-                version=__version__,
-                app=self.app,
-            )
-
-        @route('/assets/<filename>')
-        def assets(filename):
-            return static_file(filename, root=self.assets_path)
+        @route('/<filename>')
+        def assets(filename=None):
+            return static_file(filename or 'index.html', root=self.assets_path)
 
         @post('/api/start')
         def start():
@@ -51,11 +37,10 @@ class HttpServer:
 
         @post('/api/pause')
         def pause():
-            app.pause()
-
-        @post('/api/unpause')
-        def unpause():
-            app.unpause()
+            if app.state.lower() == 'paused':
+                app.unpause()
+            else:
+                app.pause()
 
         @route('/api/status')
         def status():
