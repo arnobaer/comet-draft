@@ -6,3 +6,4 @@ from .collection import Collection
 from .procedure import Procedure
 from .device import Device
 from .filewriter import FileWriter, CSVFileWriter, HephyDBFileWriter
+from .settings import Settings

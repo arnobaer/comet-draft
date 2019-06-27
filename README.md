@@ -20,3 +20,4 @@ Use your web browser to access http://localhost:8080/
 * [Application](doc/application.md)
 * [Devices](doc/devices.md)
 * [Ramping](doc/ramping.md)
+* [Settings](doc/settings.md)

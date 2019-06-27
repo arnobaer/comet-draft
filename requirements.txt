@@ -1,4 +1,5 @@
 psutil
+appdirs
 python-statemachine
 numpy
 pyvisa
@@ -7,4 +8,3 @@ pyvisa-sim
 pyyaml
 bottle
 paste
-jinja2

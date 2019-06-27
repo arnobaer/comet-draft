@@ -11,6 +11,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'psutil',
+        'appdirs',
         'python-statemachine',
         'numpy',
         'pyvisa',
@@ -18,12 +19,11 @@ setup(
         'pyvisa-sim',
         'pyyaml',
         'bottle',
-        'paste',
-        'jinja2',
+        'paste'
     ],
     entry_points={
         'scripts': [
-            'comet = comet.main:main',
+            'comet = comet.main:main'
         ],
     },
 )
