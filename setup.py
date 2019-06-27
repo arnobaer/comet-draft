@@ -26,4 +26,16 @@ setup(
             'comet = comet.main:main'
         ],
     },
+    package_data={
+        'comet': [
+            'config/devices/*.yml',
+            'assets/dist/index.html',
+            'assets/dist/*.css',
+            'assets/dist/*.js'
+        ]
+    },
+    license="GPLv3",
+    keywords="",
+    platforms="any",
+    classifiers=[]
 )
