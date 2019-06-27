@@ -53,6 +53,17 @@ class Parameter:
             raise ValueError(value)
         self.__value = value
 
+    def json(self):
+        """Retruns JSON compatible representation of parameter."""
+        return dict(
+            name=self.name,
+            type=self.type.__name__,
+            unit=self.unit,
+            required=self.required,
+            label=self.label,
+            value=self.value
+        )
+
     def __str__(self):
         if self.prec is not None:
             return format(self.value, '.{}f'.format(self.prec))

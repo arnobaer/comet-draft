@@ -11,6 +11,10 @@ from .device import DeviceManager
 from .component import ComponentManager
 from .collection import Collection
 from .procedure import Procedure
+from .settings import Settings
+
+ORG_NAME = 'HEPHY'
+APP_NAME = 'comet'
 
 class Application:
     """Base class for comet applications.
@@ -26,7 +30,6 @@ class Application:
 
     def __init__(self, name, backend=None):
         self.__name = name
-        self.__attrs = OrderedDict()
         self.__params = OrderedDict()
         rm = pyvisa.ResourceManager(backend or self.default_backend)
         self.__manager = DeviceManager(rm)
@@ -46,16 +49,20 @@ class Application:
         return self.__name
 
     @property
-    def attrs(self):
-        return self.__attrs
+    def settings(self):
+        """Returns dictionary of persistent application settings."""
+        with Settings(ORG_NAME, APP_NAME) as settings:
+            return settings
 
     def get(self, key, default=None):
-        """Returns application attribute."""
-        return self.__attrs.get(key, default)
+        """Returns value by key from persistent application settings."""
+        with Settings(ORG_NAME, APP_NAME) as settings:
+            return settings.get(key, default)
 
     def set(self, key, value):
-        """Set application attribute."""
-        self.__attrs[key] = value
+        """Set persistent application settings value for key. Value must be a JSON compatible object."""
+        with Settings(ORG_NAME, APP_NAME) as settings:
+            settings[key] = value
 
     @property
     def params(self):

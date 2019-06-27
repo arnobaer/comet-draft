@@ -1,15 +1,55 @@
 <!DOCTYPE html>
 <html>
-<title></title>
+<title>COMET</title>
 <body>
 
-  <div id="ctrl">
+  <div id="app-control" class="w3-container">
     <button id="start" class="w3-button">Start</button>
     <button id="stop" class="w3-button">Stop</button>
     <button id="pause" class="w3-button">Pause</button>
   </div>
 
-  <div class="w3-light-grey w3-padding">State: <span class="comet-status">Undefined</span></div>
+  <div class="w3-container">
+    <div class="w3-light-grey w3-padding">State: <span class="comet-status">Undefined</span></div>
+  </div>
+
+  <div class="w3-row w3-container">
+    <div class="w3-twothird w3-container">
+      Main panel
+    </div>
+    <div class="w3-third">
+
+      <div id="app-params" class="">
+        <header class="w3-light-grey w3-padding w3-margin-top">Parameters</header>
+      </div>
+
+      <div id="app-devices" class="">
+        <header class="w3-light-grey w3-padding w3-margin-top">Devices</header>
+        <ul class="w3-ul"></ul>
+      </div>
+
+      <div id="app-collections" class="">
+        <header class="w3-light-grey w3-padding w3-margin-top">Collections</header>
+        <ul class="w3-ul"></ul>
+      </div>
+
+      <div id="app-procedures" class="">
+        <header class="w3-light-grey w3-padding w3-margin-top">Procedures</header>
+        <ul class="w3-ul"></ul>
+      </div>
+
+      <div id="app-processes" class="">
+        <header class="w3-light-grey w3-padding w3-margin-top">Processes</header>
+        <ul class="w3-ul"></ul>
+      </div>
+
+      <div id="app-settings" class="">
+        <header class="w3-light-grey w3-padding w3-margin-top">Settings</header>
+        <ul class="w3-ul"></ul>
+      </div>
+
+    </div>
+  </div>
 
   <script src="./index.js"></script>
 </body>

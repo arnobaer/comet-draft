@@ -44,7 +44,37 @@ class HttpServer:
 
         @route('/api/status')
         def status():
-            return dict(running=app.state=='running', state=app.state, samples=random.random())
+            return dict(app=dict(status=dict(running=app.state=='running', state=app.state, samples=random.random())))
+
+        @route('/api/settings')
+        def settings():
+            return dict(app=dict(settings=app.settings))
+
+        @route('/api/params')
+        def params():
+            params = [param.json() for param in app.params.values()]
+            return dict(app=dict(params=params))
+
+        @route('/api/devices')
+        def devices():
+            devices = [device.name for device in app.devices.values()]
+            return dict(app=dict(devices=devices))
+
+        @route('/api/collections')
+        def collections():
+            collections = [collection.name for collection in app.collections.values()]
+            return dict(app=dict(collections=collections))
+
+        @route('/api/procedures')
+        def procedures():
+            procedures = [procedure.name for procedure in app.procedures.values()]
+            return dict(app=dict(procedures=procedures))
+
+        @route('/api/processes')
+        def processes():
+            processes = [processe.name for processe in app.processes.values()]
+            return dict(app=dict(processes=processes))
+
 
     @property
     def app(self):
