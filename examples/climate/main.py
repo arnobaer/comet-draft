@@ -76,6 +76,9 @@ class IVCollection(comet.Collection):
         self.add_metric('temp', unit='°C')
         self.add_metric('humid', unit='%')
 
+    def configure(self):
+        self.clear()
+
 class Monitoring(comet.Service):
 
     def setup(self):
@@ -152,7 +155,7 @@ class Longterm(comet.Job):
             self.app.fake_v += random.uniform(-0.001,-0.005)
             _, temp, humid = environ.snapshot(1)[0]
             t = time.time()
-            iv.append(time=t, i=i, v=v, temp=temp, humid=humid)
+            iv.append(time=t, i=self.app.fake_i, v=self.app.fake_v, temp=temp, humid=humid)
             self.app.table.append(dict(time=t, i=self.app.fake_i, v=self.app.fake_v, temp=temp, humid=humid))
             self.update_progress(t_now-t_begin, t_end-t_begin)
             self.wait_on_pause()

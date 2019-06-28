@@ -204,8 +204,12 @@ $(document).ready(() => {
       // creat update method
       graphs.push(() => {
         $.getJSON(`/api/collections/${name}/data/offset/${offset}`, response => {
+          if (response.app.collection.size < offset) {
+            offset = 0;
+            data = [];
+            return;
+          }
           $.each(response.app.collection.records, (key, value) => {
-            console.log(name, offset, value);
             data.push([new Date(value[0]*1000), value[1], value[2]]); // TODO expose matrics!
           });
           g.updateOptions( { 'file': data } );

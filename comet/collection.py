@@ -24,6 +24,9 @@ class Collection(Component):
     def __len__(self):
         return len(self.__records)
 
+    def clear(self):
+        self.__records.clear()
+
     def snapshot(self, n):
         """Retruns a snapshot of recent data records."""
         return self.__records[-abs(n):]
