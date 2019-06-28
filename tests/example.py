@@ -7,6 +7,9 @@ import env
 from comet import __version__ as version
 from comet.application import Application
 
+class EmptyApplication(Application):
+    pass
+
 def parse_args():
     # Parse command line arguments
     parser = argparse.ArgumentParser()
@@ -20,10 +23,10 @@ def main():
     # Parse command line arguments
     args = parse_args()
 
-    logging.getLogger().setLevel(logging.DEBUG)
+    logging.getLogger().setLevel(logging.INFO)
 
     # Create application
-    app = Application(backend=args.backend)
+    app = EmptyApplication(backend=args.backend)
 
     # Run web service
     app.run(host=args.host, port=args.port, server='paste')

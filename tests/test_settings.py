@@ -5,7 +5,7 @@ from comet import Settings
 
 class SettingsTest(unittest.TestCase):
 
-    def testMain(self):
+    def testPersistent(self):
         with Settings('HEPHY', 'comet', persistent=False) as settings:
             print(settings)
 

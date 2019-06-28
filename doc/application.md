@@ -23,8 +23,7 @@ import comet
 
 class MyApplication(comet.Application):
 
-    def __init__(self):
-        super(MyApplication, self).__init__("My App")
+    def setup(self):
         # Create parameters
         self.add_param('loops', type=int, min=0, max=8, label="# of loops")
         self.add_param('delay', default=1.0, min=0.0, max=16.0, prec=2, unit='s')
@@ -32,8 +31,8 @@ class MyApplication(comet.Application):
         self.add_device('multi', 'ASRL1::INSTR')
         # Create data collections
         self.add_collection('iv', IVCollection)
-        # Create procedures
-        self.add_procedure('measure', MeasureProcedure)
+        # Create jobs
+        self.add_job('measure', MeasureJob)
 
     def on_configure(self):
         # Reset a device
@@ -41,19 +40,19 @@ class MyApplication(comet.Application):
         device.write('*RST')
 
     def on_running(self):
-        # Run a procedure
-        measure = self.procedures.get('measure')
+        # Run a job
+        measure = self.jobs.get('measure')
         measure.run()
 
 class IVCollection(comet.Collection):
 
-    def configure(self):
+    def setup(self):
         # Create metrics
         self.add_metric('time', unit='s')
         self.add_metric('i', unit='A')
         self.add_metric('v', unit='V')
 
-class MeasureProcedure(comet.Procedure):
+class MeasureJob(comet.Job):
 
     def run(self):
         # Get parameters
@@ -77,7 +76,7 @@ class MeasureProcedure(comet.Procedure):
             time.sleep(delay)
 
 # Create user application
-app = MyApplication()
+app = MyApplication('MyApp', backend='@sim')
 
 # Serve application on http://localhost:8080
 server = comet.HttpServer(app)

@@ -2,11 +2,11 @@ import unittest
 import time
 import env
 
-from comet import Procedure
+from comet import Job
 from comet import Application
 from comet import HttpServer
 
-class MyProcedure(Procedure):
+class MyJob(Job):
     """Prints list of application params and shuts down application."""
 
     def run(self):
@@ -21,7 +21,7 @@ class MyApplication(Application):
         self.add_param('v_min', default=0.0, min=0.0, max=100.0, unit='V')
         self.add_param('v_max', default=100.0, min=0.0, max=100.0, unit='V')
         self.add_param('i_compliance', default=1.0, min=0.0, max=2.0, unit='A', label="I compl.")
-        self.add_procedure('list_params', MyProcedure)
+        self.add_job('list_params', MyJob)
 
 class CommandLineTest(unittest.TestCase):
 

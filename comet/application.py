@@ -10,7 +10,8 @@ from .parameter import Parameter
 from .device import DeviceManager
 from .component import ComponentManager
 from .collection import Collection
-from .procedure import Procedure
+from .job import Job
+from .service import Service
 from .settings import Settings
 
 ORG_NAME = 'HEPHY'
@@ -33,15 +34,16 @@ class Application:
         self.__params = OrderedDict()
         rm = pyvisa.ResourceManager(backend or self.default_backend)
         self.__manager = DeviceManager(rm)
-        self.__collections = ComponentManager(self)
-        self.__procedures = ComponentManager(self)
-        self.__processes = ComponentManager(self)
+        self.__collections = ComponentManager(self, type=Collection)
+        self.__jobs = ComponentManager(self, type=Job)
+        self.__services = ComponentManager(self, type=Service)
+        self.__threads = []
         self.__alive = False
         self.__running = False
-        self.current_procedure = None
-
+        self.current_job = None
         self.__mutex = threading.Lock()
         self.__asm = ApplicationStateMachine()
+        self.setup()
 
     @property
     def name(self):
@@ -102,26 +104,26 @@ class Application:
 
 
     @property
-    def procedures(self):
-        return self.__procedures.components
+    def jobs(self):
+        return self.__jobs.components
 
-    def add_procedure(self, name, cls, *args, **kwargs):
-        """Register operation procedure.
+    def add_job(self, name, cls, *args, **kwargs):
+        """Register application job.
 
-        >>> self.add_procedure('my_proc', MyProcedure)
+        >>> self.add_job('my_job', MyJob)
         """
-        return self.__procedures.add_component(cls, name, *args, **kwargs)
+        return self.__jobs.add_component(cls, name, *args, **kwargs)
 
     @property
-    def processes(self):
-        return self.__processes.components
+    def services(self):
+        return self.__services.components
 
-    def add_process(self, name, cls, *args, **kwargs):
-        """Register continious process operations.
+    def add_service(self, name, cls, *args, **kwargs):
+        """Register application service.
 
-        >>> self.add_process('my_mon', MyMonitoring)
+        >>> self.add_service('my_monitor', MyMonitorService)
         """
-        return self.__processes.add_component(cls, name, *args, **kwargs)
+        return self.__services.add_component(cls, name, *args, **kwargs)
 
     @property
     def state(self):
@@ -158,6 +160,20 @@ class Application:
             self.__asm.unpause()
         self.__mutex.release()
 
+    # states
+
+    @property
+    def is_halted(self):
+        return self.__asm.is_halted
+
+    @property
+    def is_running(self):
+        return self.__asm.is_running
+
+    @property
+    def is_paused(self):
+        return self.__asm.is_paused
+
     # State hooks
 
     def on_halted(self):
@@ -184,31 +200,35 @@ class Application:
     def __configure(self):
         for collection in self.collections.values():
             collection.configure()
-        for procedure in self.procedures.values():
-            procedure.configure()
-        for monitor in self.processes.values():
-            monitor.configure()
+        for job in self.jobs.values():
+            job.configure()
+        for service in self.services.values():
+            service.configure()
+
+    def setup(self):
+        pass
 
     def run(self):
         self.__alive = True
         self.__configure()
 
-        threads = []
-        for process in self.processes.values():
-            threads.append(threading.Thread(target=process.run))
+        for service in self.services.values():
+            self.__threads.append(threading.Thread(target=service.run))
 
-        for thread in threads:
+        for thread in self.__threads:
             thread.start()
 
         # event loop
         while self.__alive:
+            asm = self.__asm
+            if asm.is_configure:
+                self.__configure()
             # call state hook
-            method = 'on_{}'.format(self.__asm.current_state.identifier)
+            method = 'on_{}'.format(asm.current_state.identifier)
             if hasattr(self, method):
                 getattr(self, method)()
             # automatic transitions
             self.__mutex.acquire()
-            asm = self.__asm
             if asm.is_configure:
                 asm.run()
             elif asm.is_running:
@@ -219,11 +239,13 @@ class Application:
             # throttle event loop
             time.sleep(self.event_loop_throttle)
 
-        for process in self.processes.values():
-            process.quit()
+        for service in self.services.values():
+            service.quit()
 
-        for thread in threads:
+        for thread in self.__threads:
             thread.join()
+
+        self.__threads.clear()
 
 class ApplicationStateMachine(StateMachine):
     """Application state machine."""

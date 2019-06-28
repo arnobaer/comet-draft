@@ -11,6 +11,7 @@ class Collection(Component):
         self.__records = []
         self.__metrics = OrderedDict()
         self.__handles = []
+        self.setup()
 
     @property
     def metrics(self):
@@ -39,6 +40,9 @@ class Collection(Component):
         metric = Metric(name, **kwargs)
         self.__metrics[name] = metric
         return metric
+
+    def setup(self):
+        pass
 
     def configure(self):
         pass

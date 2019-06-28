@@ -30,7 +30,7 @@ class HttpServer:
             return static_file(filename or 'index.html', root=self.assets_path)
 
         @post('/api/start')
-        def start():
+        def api_start():
             # Update application parameters
             for name, value in request.forms.items():
                 param = app.params.get(name)
@@ -41,48 +41,48 @@ class HttpServer:
             app.start()
 
         @post('/api/stop')
-        def stop():
+        def api_stop():
             app.stop()
 
         @post('/api/pause')
-        def pause():
+        def api_pause():
             if app.state.lower() == 'paused':
                 app.unpause()
             else:
                 app.pause()
 
         @route('/api/status')
-        def status():
+        def api_status():
             return dict(app=dict(status=dict(running=app.state=='running', state=app.state, samples=random.random())))
 
         @route('/api/settings')
-        def settings():
+        def api_settings():
             return dict(app=dict(settings=app.settings))
 
         @route('/api/params')
-        def params():
+        def api_params():
             params = [param.json() for param in app.params.values()]
             return dict(app=dict(params=params))
 
         @route('/api/devices')
-        def devices():
+        def api_devices():
             devices = [device.name for device in app.devices.values()]
             return dict(app=dict(devices=devices))
 
         @route('/api/collections')
-        def collections():
+        def api_collections():
             collections = [collection.name for collection in app.collections.values()]
             return dict(app=dict(collections=collections))
 
-        @route('/api/procedures')
-        def procedures():
-            procedures = [procedure.name for procedure in app.procedures.values()]
-            return dict(app=dict(procedures=procedures))
+        @route('/api/jobs')
+        def api_jobs():
+            jobs = [job.label for job in app.jobs.values()]
+            return dict(app=dict(jobs=jobs))
 
-        @route('/api/processes')
-        def processes():
-            processes = [processe.name for processe in app.processes.values()]
-            return dict(app=dict(processes=processes))
+        @route('/api/services')
+        def api_services():
+            services = [service.name for service in app.services.values()]
+            return dict(app=dict(services=services))
 
 
     @property

@@ -23,13 +23,13 @@ class Application(comet.Application):
         # register data collections
         self.add_collection(EnvCollection('environ', continious=True)) # not reset on [start]
         self.add_collection(IVCollection('iv')) # content will be cleared on every [start]
-        # create continious procedure
-        self.add_procedure(Monitoring(), continious=True) # starts immediately
-        # create sequence of procedures
-        self.add_procedure(RampUp()) # executed on [start]
-        self.add_procedure(RampDownLongterm())
-        self.add_procedure(Longterm())
-        self.add_procedure(RampDownFinal())
+        # create continious jobs
+        self.add_job(Monitoring(), continious=True) # starts immediately
+        # create sequence of jobs
+        self.add_job(RampUp()) # executed on [start]
+        self.add_job(RampDownLongterm())
+        self.add_job(Longterm())
+        self.add_job(RampDownFinal())
 
         # every [start] creates a new data directory containing all logs
         # ~/CometData/QXS_2019_06_11_001/iv_curve.csv
@@ -77,13 +77,13 @@ class IVCollection(comet.Collection):
         humid = ss.get('humid')
         self.write(time=t, v=volts, i=amps, temp=temp, humid=humid)
 
-class Monitoring(comet.Procedure):
+class Monitoring(comet.Job):
 
     def run(self):
         self.collections.get('environ').update()
         self.wait(5.0) # throttle
 
-class Ramp(comet.Procedure):
+class Ramp(comet.Job):
 
     def setup(self):
         self.smu = self.devices.get('smu')
@@ -111,7 +111,7 @@ class RampDownLongterm(Ramp):
             step=self.params.get('vstep', 1.0),
         )
 
-class Longterm(comet.Procedure):
+class Longterm(comet.Job):
 
     def run(self):
         while self.running:

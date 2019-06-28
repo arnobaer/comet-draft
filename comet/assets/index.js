@@ -27,6 +27,15 @@ import $ from "jquery";
     return params;
   }
 
+  function updateParams() {
+    $.getJSON('/api/params', function(response) {
+      let params = response.app.params;
+      $.each(params, (key, param) => {
+        $(`#app-params input[name=${param.name}]`).val(param.value);
+      });
+    });
+  }
+
   $('.app-title').text(app.title);
   $('.app-version').text(app.version);
 
@@ -61,6 +70,7 @@ import $ from "jquery";
         $('#app-control button').prop('disabled', true);
         $('#app-params input').prop('disabled', true);
         $('.app-status').html(state);
+        updateParams();
         switch (state.toLowerCase()) {
           case 'halted':
             $('#start').prop('disabled', false);
@@ -124,20 +134,20 @@ import $ from "jquery";
     $.each(collections, (key, value) => ul.append($("<li />").text(`${key}: ${value}`)));
   });
 
-  // procedures
+  // jobs
 
-  $.getJSON('/api/procedures', function(response) {
-    let procedures = response.app.procedures;
-    let ul = $('#app-procedures');
-    $.each(procedures, (key, value) => ul.append($("<li />").text(`${key}: ${value}`)));
+  $.getJSON('/api/jobs', function(response) {
+    let jobs = response.app.jobs;
+    let ul = $('#app-jobs');
+    $.each(jobs, (key, value) => ul.append($("<li />").text(`${key}: ${value}`)));
   });
 
-  // processes
+  // services
 
-  $.getJSON('/api/processes', function(response) {
-    let processes = response.app.processes;
-    let ul = $('#app-processes');
-    $.each(processes, (key, value) => ul.append($("<li />").text(`${key}: ${value}`)));
+  $.getJSON('/api/services', function(response) {
+    let services = response.app.services;
+    let ul = $('#app-services');
+    $.each(services, (key, value) => ul.append($("<li />").text(`${key}: ${value}`)));
   });
 
   // settings

@@ -7,8 +7,7 @@ class Application(comet.Application):
 
     max_sensors = 10
 
-    def __init__(self):
-        super(Application, self).__init__('CLT', backend='@sim')
+    def setup(self):
         # Set attributes
         self.set('default_op', 'Monty')
         # Register parameters
@@ -32,25 +31,25 @@ class Application(comet.Application):
         # Register collections
         self.add_collection('environ', EnvironCollection)
         self.add_collection('iv', IVCollection)
-        # Register continous process
-        self.add_process('mon', Monitoring)
+        # Register services
+        self.add_service('mon', Monitoring)
         # Register states
-        self.add_procedure('ramp_up', RampUp)
-        self.add_procedure('ramp_bias', RampBias)
-        self.add_procedure('longterm', Longterm)
-        self.add_procedure('ramp_down', RampDown)
+        self.add_job('ramp_up', RampUp)
+        self.add_job('ramp_bias', RampBias)
+        self.add_job('longterm', Longterm)
+        self.add_job('ramp_down', RampDown)
 
     def on_running(self):
-        self.procedures.get('ramp_up').run()
-        self.procedures.get('ramp_bias').run()
-        self.procedures.get('longterm').run()
+        self.jobs.get('ramp_up').run()
+        self.jobs.get('ramp_bias').run()
+        self.jobs.get('longterm').run()
 
     def on_stopping(self):
-        self.procedures.get('ramp_down').run()
+        self.jobs.get('ramp_down').run()
 
 class EnvironCollection(comet.Collection):
 
-    def configure(self):
+    def setup(self):
         self.add_metric('time', unit='s')
         self.add_metric('temp', unit='°C')
         self.add_metric('humid', unit='%')
@@ -59,17 +58,14 @@ class EnvironCollection(comet.Collection):
 
 class IVCollection(comet.Collection):
 
-    def configure(self):
+    def setup(self):
         self.add_metric('time', unit='s')
         self.add_metric('i', unit='A')
         self.add_metric('v', unit='V')
         self.add_metric('temp', unit='°C')
         self.add_metric('humid', unit='%')
 
-class Monitoring(comet.Procedure):
-
-    def configure(self):
-        pass
+class Monitoring(comet.Service):
 
     def run(self):
         environ = self.app.collections.get('environ')
@@ -78,7 +74,9 @@ class Monitoring(comet.Procedure):
         environ.append(time=time.time(), temp=temp, humid=humid)
         self.wait(2)
 
-class RampUp(comet.Procedure):
+class RampUp(comet.Job):
+
+    steps = 64
 
     def configure(self):
         writer = comet.HephyDBFileWriter('iv.hephydb')
@@ -86,7 +84,7 @@ class RampUp(comet.Procedure):
         self.table = writer.create_table('iv_curve', ['time', 'i', 'v', 'temp', 'humid'])
 
     def run(self):
-        for step in range(80):
+        for step in range(self.steps):
             environ = self.app.collections.get('environ')
             iv = self.app.collections.get('iv')
             i = float(self.app.devices.get('climate').query('?FREQ'))
@@ -96,16 +94,16 @@ class RampUp(comet.Procedure):
             iv.append(time=t, i=i, v=v, temp=temp, humid=humid)
             self.table.append(dict(time=t, i=i, v=v, temp=temp, humid=humid))
             time.sleep(.1)
-            self.progress = 100/80*step
+            self.update_progress(step, self.steps)
+
         print()
 
-class RampBias(comet.Procedure):
+class RampBias(comet.Job):
 
-    def configure(self):
-        pass
+    steps = 16
 
     def run(self):
-        for step in range(20):
+        for step in range(self.steps):
             environ = self.app.collections.get('environ')
             iv = self.app.collections.get('iv')
             i = float(self.app.devices.get('climate').query('?FREQ'))
@@ -113,35 +111,17 @@ class RampBias(comet.Procedure):
             _, temp, humid = environ.snapshot(1)[0]
             iv.append(time=time.time(), i=i, v=v, temp=temp, humid=humid)
             time.sleep(.1)
-            self.progress = 100/80*step
-        print()
-        self.wait(2)
-
-class Longterm(comet.Procedure):
-
-    def configure(self):
-        pass
-
-    def run(self):
-        for step in range(101):
-            environ = self.app.collections.get('environ')
-            iv = self.app.collections.get('iv')
-            i = float(self.app.devices.get('climate').query('?FREQ'))
-            v = float(self.app.devices.get('climate').query('?FREQ'))
-            _, temp, humid = environ.snapshot(1)[0]
-            iv.append(time=time.time(), i=i, v=v, temp=temp, humid=humid)
-            time.sleep(.1)
-            self.progress = 100/80*step
+            self.update_progress(step, self.steps)
         print()
         self.wait(2)
 
-class RampDown(comet.Procedure):
+class Longterm(comet.Job):
 
-    def configure(self):
-        pass
+    steps = 128
 
     def run(self):
-        for step in range(60):
+        for step in range(self.steps):
+            print('\n******\n{}\n*****\n'.format(step), flush=True)
             environ = self.app.collections.get('environ')
             iv = self.app.collections.get('iv')
             i = float(self.app.devices.get('climate').query('?FREQ'))
@@ -149,14 +129,32 @@ class RampDown(comet.Procedure):
             _, temp, humid = environ.snapshot(1)[0]
             iv.append(time=time.time(), i=i, v=v, temp=temp, humid=humid)
             time.sleep(.1)
-            self.progress = 100/60*step
+            self.update_progress(step, self.steps)
+            self.wait_on_pause()
+        print()
+        self.wait(2)
+
+class RampDown(comet.Job):
+
+    steps = 32
+
+    def run(self):
+        for step in range(self.steps):
+            environ = self.app.collections.get('environ')
+            iv = self.app.collections.get('iv')
+            i = float(self.app.devices.get('climate').query('?FREQ'))
+            v = float(self.app.devices.get('climate').query('?FREQ'))
+            _, temp, humid = environ.snapshot(1)[0]
+            iv.append(time=time.time(), i=i, v=v, temp=temp, humid=humid)
+            time.sleep(.1)
+            self.update_progress(step, self.steps)
         print()
         self.wait(2)
 
 
 def main():
     # Create user application
-    app = Application()
+    app = Application('Longterm', backend='@sim')
 
     logging.getLogger().setLevel(logging.INFO)
 

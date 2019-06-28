@@ -19,6 +19,7 @@ Use your web browser to access http://localhost:8080/
 ## Documentation
 
 * [Application](doc/application.md)
+* [Jobs](doc/jobs.md)
 * [Devices](doc/devices.md)
 * [Ramping](doc/ramping.md)
 * [Settings](doc/settings.md)
