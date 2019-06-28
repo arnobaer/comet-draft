@@ -1,16 +1,29 @@
-/* W3CSS style customizations */
-
-body > .w3-container {
-   padding: 0;"
-}
+/* Style customizations */
 
 .w3-theme {
   color: #ffffff !important;
-  background-color: #2c5aa0 !important; 
+  background-color: #2c5aa0 !important;
 }
 
-#logo {
-  width:32px;
-  border: 1px solid #afc6e9;
-  margin: 2px 12px 12px 0;
+body {
+  padding-top: 92px;
+}
+
+#app-header {
+  min-width: 320px;
+  overflow: hidden;
+}
+
+#app-header .w3-bar-item {
+  padding-left: 0;
+}
+
+#app-header .app-title {
+  font-size: 32px;
+  line-height: 48px;
+}
+
+#app-logo {
+  height: 48px;
+  width: 48px;
 }

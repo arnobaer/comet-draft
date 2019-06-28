@@ -1,53 +1,119 @@
 <!DOCTYPE html>
 <html>
-<title>COMET</title>
+<meta charset="utf-8">
+<title class="app-title"></title>
+<link rel=icon href=./icon.svg sizes="any" type="image/svg+xml">
+<link rel="stylesheet" href="./style.css">
 <body>
 
-  <div id="app-control" class="w3-container">
-    <button id="start" class="w3-button">Start</button>
-    <button id="stop" class="w3-button">Stop</button>
-    <button id="pause" class="w3-button">Pause</button>
-  </div>
-
-  <div class="w3-container">
-    <div class="w3-light-grey w3-padding">State: <span class="comet-status">Undefined</span></div>
-  </div>
-
-  <div class="w3-row w3-container">
-    <div class="w3-twothird w3-container">
-      Main panel
+  <!-- sticky header -->
+  <div id="app-header" class="w3-container w3-top w3-theme">
+    <div class="w3-bar">
+        <div class="w3-left w3-bar-item ">
+          <img id="app-logo" src="./icon.svg">
+        </div>
+        <div class="w3-bar-item">
+          <span class="app-title"></span>
+          <span class="app-status w3-tag"></span>
+        </div>
+        <div class="w3-right w3-bar-item w3-hide-small">
+          <p class="w3-small">Technical demonstrator application</p>
+        </div>
     </div>
-    <div class="w3-third">
+  </div>
 
-      <div id="app-params" class="">
-        <header class="w3-light-grey w3-padding w3-margin-top">Parameters</header>
+  <div class="w3-row">
+    <div class="w3-full w3-container">
+
+      <div class="w3-card">
+
+        <div id="app-control">
+          <button id="start" class="w3-button w3-theme">Start</button>
+          <button id="stop" class="w3-button w3-theme">Stop</button>
+          <button id="pause" class="w3-button w3-theme">Pause</button>
+        </div>
+
+        <div class="w3">
+          <div class="w3-light-grey w3-padding">State: <span class="app-status w3-tag"></span></div>
+        </div>
+
       </div>
 
-      <div id="app-devices" class="">
-        <header class="w3-light-grey w3-padding w3-margin-top">Devices</header>
-        <ul class="w3-ul"></ul>
+    </div>
+  </div>
+
+  <div class="w3-row">
+    <div class="w3-half w3-container">
+
+      <div id="app-panels">
+
+        <div class="w3-card">
+          <header class="w3-panel w3-light-grey w3-padding w3-margin-top">Main panel 1</header>
+          <div class="w3-container app-panel-content">
+            <p>Lorem ipsum et dolor.</p>
+          </div>
+        </div>
+
+        <div class="w3-card">
+          <header class="w3-panel w3-light-grey w3-padding w3-margin-top">Main panel 2</header>
+          <div class="w3-container app-panel-content">
+            <p>Lorem ipsum et dolor.</p>
+          </div>
+        </div>
+
+        <div class="w3-card">
+          <header class="w3-panel w3-light-grey w3-padding w3-margin-top">Main panel 3</header>
+          <div class="w3-container app-panel-content">
+            <p>Lorem ipsum et dolor.</p>
+          </div>
+        </div>
+
       </div>
 
-      <div id="app-collections" class="">
-        <header class="w3-light-grey w3-padding w3-margin-top">Collections</header>
-        <ul class="w3-ul"></ul>
+    </div>
+    <div class="w3-quarter w3-container">
+
+      <div class="w3-card">
+        <header class="w3-panel w3-light-grey w3-padding w3-margin-top">Parameters</header>
+        <div id="app-params" class="w3-container"></div>
       </div>
 
-      <div id="app-procedures" class="">
-        <header class="w3-light-grey w3-padding w3-margin-top">Procedures</header>
-        <ul class="w3-ul"></ul>
+    </div>
+    <div class="w3-quarter w3-container">
+
+      <div class="w3-card">
+        <header class="w3-panel w3-light-grey w3-padding w3-margin-top">Devices</header>
+        <ul id="app-devices" class="w3-ul"></ul>
       </div>
 
-      <div id="app-processes" class="">
-        <header class="w3-light-grey w3-padding w3-margin-top">Processes</header>
-        <ul class="w3-ul"></ul>
+      <div class="w3-card">
+        <header class="w3-panel w3-light-grey w3-padding w3-margin-top">Collections</header>
+        <ul id="app-collections" class="w3-ul"></ul>
       </div>
 
-      <div id="app-settings" class="">
-        <header class="w3-light-grey w3-padding w3-margin-top">Settings</header>
-        <ul class="w3-ul"></ul>
+      <div class="w3-card">
+        <header class="w3-panel w3-light-grey w3-padding w3-margin-top">Procedures</header>
+        <ul id="app-procedures" class="w3-ul"></ul>
       </div>
 
+      <div class="w3-card">
+        <header class="w3-panel w3-light-grey w3-padding w3-margin-top">Processes</header>
+        <ul id="app-processes" class="w3-ul"></ul>
+      </div>
+
+      <div class="w3-card">
+        <header class="w3-panel w3-light-grey w3-padding w3-margin-top">Settings</header>
+        <ul id="app-settings" class="w3-ul"></ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- footer -->
+  <div id="app-footer" class="w3-container w3-light-grey w3-margin-top">
+    <div class="w3-content w3-text-grey w3-small">
+      <p>COMET | Control &amp; Measurement Toolkit <span class="w3-right"><a href="https://github.com/arnobaer/comet/" target="_blank">Fork me on github!</a></spa></p>
+      <p>Version <span class="app-version"><span></p>
     </div>
   </div>
 

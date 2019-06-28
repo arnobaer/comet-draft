@@ -1,9 +1,11 @@
 import os
 import threading
 import random
+import logging
 import time
 
-from bottle import response, route, post
+from bottle import response, request
+from bottle import route, post
 from bottle import static_file
 from bottle import run
 
@@ -29,6 +31,13 @@ class HttpServer:
 
         @post('/api/start')
         def start():
+            # Update application parameters
+            for name, value in request.forms.items():
+                param = app.params.get(name)
+                if param:
+                    logging.debug("update param '%s' with value '%s'", name, value)
+                    param.value = value
+            # Start run
             app.start()
 
         @post('/api/stop')
