@@ -10,7 +10,7 @@ from .parameter import Parameter
 from .device import DeviceManager
 from .component import ComponentManager
 from .collection import Collection
-from .job import Job
+from .job import Job, JobHandle
 from .service import Service
 from .settings import Settings
 
@@ -43,6 +43,7 @@ class Application:
         self.current_job = None
         self.__mutex = threading.Lock()
         self.__asm = ApplicationStateMachine()
+        self.active_jobs = set()
         self.setup()
 
     @property
@@ -102,17 +103,16 @@ class Application:
         """
         return self.__collections.add_component(cls, name, *args, **kwargs)
 
-
     @property
     def jobs(self):
-        return self.__jobs.components
+        return OrderedDict([(k, JobHandle(v)) for k, v in self.__jobs.components.items()])
 
     def add_job(self, name, cls, *args, **kwargs):
         """Register application job.
 
         >>> self.add_job('my_job', MyJob)
         """
-        return self.__jobs.add_component(cls, name, *args, **kwargs)
+        return JobHandle(self.__jobs.add_component(cls, name, *args, **kwargs))
 
     @property
     def services(self):
@@ -221,21 +221,28 @@ class Application:
         # event loop
         while self.__alive:
             asm = self.__asm
+
+            # Configure
             if asm.is_configure:
                 self.__configure()
+
             # call state hook
-            method = 'on_{}'.format(asm.current_state.identifier)
-            if hasattr(self, method):
-                getattr(self, method)()
+            method = getattr(self, 'on_{}'.format(asm.current_state.identifier))
+            method()
+
             # automatic transitions
             self.__mutex.acquire()
-            if asm.is_configure:
+            # rRun after configure finished
+            if asm.is_configure and method == self.on_configure:
                 asm.run()
-            elif asm.is_running:
+            # stop after running finshed
+            elif asm.is_running and method == self.on_running:
                 asm.stop()
-            elif asm.is_stopping:
+            # halt after stopping finshed
+            elif asm.is_stopping and method == self.on_stopping:
                 asm.halt()
             self.__mutex.release()
+
             # throttle event loop
             time.sleep(self.event_loop_throttle)
 

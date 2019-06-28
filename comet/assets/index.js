@@ -8,9 +8,10 @@ import './style.css';
 import './icon.svg';
 
 // Dependencies
-import $ from "jquery";
+import Dygraph from 'dygraphs';
+import $ from 'jquery';
 
-(function() {
+$(document).ready(() => {
 
   var app = {
     title: 'COMET',
@@ -28,12 +29,21 @@ import $ from "jquery";
   }
 
   function updateParams() {
-    $.getJSON('/api/params', function(response) {
+    $.getJSON('/api/params', (response) => {
       let params = response.app.params;
       $.each(params, (key, param) => {
         $(`#app-params input[name=${param.name}]`).val(param.value);
       });
     });
+  }
+
+  function updateActiveJob(activeJobs) {
+    $('.app-active-job').html('None');
+    $('.app-active-job-percent').html((0.00).toFixed(2));
+    if (activeJobs.length) {
+      $('.app-active-job').html(activeJobs[0][0]);
+      $('.app-active-job-percent').html(activeJobs[0][1].toFixed(2));
+    }
   }
 
   $('.app-title').text(app.title);
@@ -42,30 +52,32 @@ import $ from "jquery";
   $('#app-control button').prop('disabled', true);
   $('#app-params input').prop('disabled', true);
 
-  $('#start').click(function() {
+  $('#start').click(() => {
     $('button').prop('disabled', true);
     $('#app-params input').prop('disabled', true);
     $.post('/api/start', getParamValues(), function(response) {
     });
   });
 
-  $('#stop').click(function() {
+  $('#stop').click(() => {
     $('#app-control button').prop('disabled', true);
     $.post('/api/stop', {}, function(response) {
     });
   });
 
-  $('#pause').click(function() {
+  $('#pause').click(() => {
     $('#app-control button').prop('disabled', true);
     $('#pause').prop('disabled', true);
     $.post('/api/pause', {}, function(response) {
     });
   });
 
-  setInterval(function() {
-    $.getJSON('/api/status', function(response) {
+  setInterval(() => {
+    $.getJSON('/api/status', response => {
+      $('body').show();
       let state = response.app.status.state;
       let state_color = 'grey';
+      updateActiveJob(response.app.status.active_jobs);
       if (state != app.previous_state) {
         $('#app-control button').prop('disabled', true);
         $('#app-params input').prop('disabled', true);
@@ -76,6 +88,11 @@ import $ from "jquery";
             $('#start').prop('disabled', false);
             $('#app-params input').prop('disabled', false);
             state_color = 'green';
+            break;
+          case 'configure':
+            $('#stop').prop('disabled', false);
+            $('#pause').prop('disabled', false);
+            state_color = 'orange';
             break;
           case 'running':
             $('#stop').prop('disabled', false);
@@ -91,12 +108,14 @@ import $ from "jquery";
         $('.app-status.w3-tag').css('background-color', state_color);
       }
       app.previous_state = state;
+    }).fail(response => {
+      $('body').hide();
     });
   }, 250);
 
   // params
 
-  $.getJSON('/api/params', function(response) {
+  $.getJSON('/api/params', response => {
     let params = response.app.params;
     let div = $('#app-params');
     $.each(params, (key, param) => {
@@ -120,7 +139,7 @@ import $ from "jquery";
 
   // devices
 
-  $.getJSON('/api/devices', function(response) {
+  $.getJSON('/api/devices', response => {
     let devices = response.app.devices;
     let ul = $('#app-devices');
     $.each(devices, (key, value) => ul.append($("<li />").text(`${key}: ${value}`)));
@@ -128,7 +147,7 @@ import $ from "jquery";
 
   // collections
 
-  $.getJSON('/api/collections', function(response) {
+  $.getJSON('/api/collections', response => {
     let collections = response.app.collections;
     let ul = $('#app-collections');
     $.each(collections, (key, value) => ul.append($("<li />").text(`${key}: ${value}`)));
@@ -136,7 +155,7 @@ import $ from "jquery";
 
   // jobs
 
-  $.getJSON('/api/jobs', function(response) {
+  $.getJSON('/api/jobs', response => {
     let jobs = response.app.jobs;
     let ul = $('#app-jobs');
     $.each(jobs, (key, value) => ul.append($("<li />").text(`${key}: ${value}`)));
@@ -144,7 +163,7 @@ import $ from "jquery";
 
   // services
 
-  $.getJSON('/api/services', function(response) {
+  $.getJSON('/api/services', response => {
     let services = response.app.services;
     let ul = $('#app-services');
     $.each(services, (key, value) => ul.append($("<li />").text(`${key}: ${value}`)));
@@ -152,10 +171,54 @@ import $ from "jquery";
 
   // settings
 
-  $.getJSON('/api/settings', function(response) {
+  $.getJSON('/api/settings', response => {
     let settings = response.app.settings;
     let ul = $('#app-settings');
     $.each(settings, (key, value) => ul.append($("<li />").text(`${key}: ${value}`)));
   });
 
-})();
+  // dygraphs
+
+  $.getJSON('/api/collections', response => {
+    let collections = response.app.collections;
+    // create graph panels
+    $.each(collections, (key, name) => {
+      let graph = $(`<div id="dygraph_${name}" style="width:100%; height:300px;" />`);
+      let content = $(`<div class="w3-container app-panel-content" />`);
+      content.append(graph);
+      let header = $(`<header class="w3-panel w3-light-grey w3-padding w3-margin-top">${name}</header>`);
+      let panel = $(`<div class="w3-card" />`);
+      panel.append(header);
+      panel.append(content);
+      $('#app-panels').append(panel);
+    });
+    // create graph objects
+    var graphs = [];
+    $.each(collections, (key, name) => {
+      var offset = 0;
+      var data = [];
+      var g = new Dygraph(document.getElementById(`dygraph_${name}`), data, {
+        drawPoints: true,
+        labels: ['Time', 'Temp', 'Humid']
+      });
+      // creat update method
+      graphs.push(() => {
+        $.getJSON(`/api/collections/${name}/data/offset/${offset}`, response => {
+          $.each(response.app.collection.records, (key, value) => {
+            console.log(name, offset, value);
+            data.push([new Date(value[0]*1000), value[1], value[2]]); // TODO expose matrics!
+          });
+          g.updateOptions( { 'file': data } );
+          offset += response.app.collection.records.length;
+        });
+      });
+    });
+    // syncronious graph update
+    setInterval(() => {
+      $.each(graphs, (key, graph) => {
+        graph();
+      });
+    }, 1000);
+  });
+
+});

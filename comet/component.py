@@ -50,7 +50,16 @@ class ControlComponent(Component):
         >>> self.wait(1.25)  # waits 1.25 seconds
         """
         t = self.time()
-        while t + delay < self.time():
+        while self.time() < t + delay:
+            time.sleep(self.wait_interval)
+
+    def wait_while_running(self, delay):
+        """Wait for delay in seconds or application stops running.
+
+        >>> self.wait(1.25)  # waits 1.25 seconds
+        """
+        t = self.time()
+        while self.time() < t + delay and self.app.is_running:
             time.sleep(self.wait_interval)
 
     def time(self):

@@ -1,5 +1,6 @@
 import time
 import logging
+import random
 
 import comet
 
@@ -21,7 +22,8 @@ class Application(comet.Application):
         self.add_param('v_bias', default=600.0, prec=2, unit='V')
         self.add_param('i_smu_compliance', default=80.0, prec=1, unit='uA')
         self.add_param('i_sensor_compliance', default=25.0, prec=1, unit='uA')
-        self.add_param('t_meas', default=1.0, prec=2, unit='min')
+        self.add_param('t_longterm', default=60.0, prec=2, unit='min')
+        self.add_param('t_interval', default=60.0, prec=2, unit='sec')
         self.add_param('t_tcp_recover', min=0, type=int, label="Wait on TCP reconnect to cliamte chamber")
         # register devices
         self.add_device('climate', 'ASRL1::INSTR')
@@ -38,6 +40,15 @@ class Application(comet.Application):
         self.add_job('ramp_bias', RampBias)
         self.add_job('longterm', Longterm)
         self.add_job('ramp_down', RampDown)
+
+        self.fake_i = 0.0
+        self.fake_v = 0.0
+
+    def on_configure(self):
+        time.sleep(3.0)
+        writer = comet.HephyDBFileWriter('iv.hephydb')
+        writer.create(["IV","demo","testing"])
+        self.table = writer.create_table('iv_curve', ['time', 'i', 'v', 'temp', 'humid'])
 
     def on_running(self):
         self.jobs.get('ramp_up').run()
@@ -67,32 +78,37 @@ class IVCollection(comet.Collection):
 
 class Monitoring(comet.Service):
 
+    def setup(self):
+        self.temp = random.uniform(20, 24)
+        self.humid = random.uniform(40, 60)
+
     def run(self):
-        environ = self.app.collections.get('environ')
-        temp = float(self.app.devices.get('climate').query('?FREQ')) * len(environ) / 100.
-        humid = float(self.app.devices.get('climate').query('?FREQ')) * len(environ) / 100.
-        environ.append(time=time.time(), temp=temp, humid=humid)
-        self.wait(2)
+        while self.is_alive:
+            environ = self.app.collections.get('environ')
+            self.temp += random.uniform(-.5, .5)
+            temp = self.temp # float(self.app.devices.get('climate').query('?FREQ'))
+            self.humid += random.uniform(-.1, .1)
+            if self.humid > 100.0: self.humid = 100.0
+            if self.humid < 10.0: self.humid = 10.0
+            humid = self.humid # float(self.app.devices.get('climate').query('?FREQ'))
+            environ.append(time=time.time(), temp=temp, humid=humid)
+            self.wait(2)
 
 class RampUp(comet.Job):
 
     steps = 64
 
-    def configure(self):
-        writer = comet.HephyDBFileWriter('iv.hephydb')
-        writer.create(["IV","demo","testing"])
-        self.table = writer.create_table('iv_curve', ['time', 'i', 'v', 'temp', 'humid'])
-
     def run(self):
         for step in range(self.steps):
             environ = self.app.collections.get('environ')
             iv = self.app.collections.get('iv')
-            i = float(self.app.devices.get('climate').query('?FREQ'))
-            v = float(self.app.devices.get('climate').query('?FREQ'))
+            #i = float(self.app.devices.get('climate').query('?FREQ'))
+            #v = float(self.app.devices.get('climate').query('?FREQ'))
+            self.app.fake_i += random.uniform(1.3,1.4)
+            self.app.fake_v += random.uniform(1.45,1.55)
             _, temp, humid = environ.snapshot(1)[0]
             t = time.time()
-            iv.append(time=t, i=i, v=v, temp=temp, humid=humid)
-            self.table.append(dict(time=t, i=i, v=v, temp=temp, humid=humid))
+            iv.append(time=t, i=self.app.fake_i, v=self.app.fake_v, temp=temp, humid=humid)
             time.sleep(.1)
             self.update_progress(step, self.steps)
 
@@ -106,10 +122,12 @@ class RampBias(comet.Job):
         for step in range(self.steps):
             environ = self.app.collections.get('environ')
             iv = self.app.collections.get('iv')
-            i = float(self.app.devices.get('climate').query('?FREQ'))
-            v = float(self.app.devices.get('climate').query('?FREQ'))
+            #i = float(self.app.devices.get('climate').query('?FREQ'))
+            #v = float(self.app.devices.get('climate').query('?FREQ'))
+            self.app.fake_i += random.uniform(-1.3,-1.4)
+            self.app.fake_v += random.uniform(-1.45,-1.55)
             _, temp, humid = environ.snapshot(1)[0]
-            iv.append(time=time.time(), i=i, v=v, temp=temp, humid=humid)
+            iv.append(time=time.time(), i=self.app.fake_i, v=self.app.fake_v, temp=temp, humid=humid)
             time.sleep(.1)
             self.update_progress(step, self.steps)
         print()
@@ -117,20 +135,28 @@ class RampBias(comet.Job):
 
 class Longterm(comet.Job):
 
-    steps = 128
-
     def run(self):
-        for step in range(self.steps):
-            print('\n******\n{}\n*****\n'.format(step), flush=True)
+        t_longterm_sec = self.app.params.get('t_longterm').value * 60
+        t_interval_sec = self.app.params.get('t_interval').value
+        t_begin = self.time()
+        t_end = t_begin + t_longterm_sec
+        while self.app.is_running:
+            t_now = self.time()
+            if t_end < t_now:
+                break
             environ = self.app.collections.get('environ')
             iv = self.app.collections.get('iv')
-            i = float(self.app.devices.get('climate').query('?FREQ'))
-            v = float(self.app.devices.get('climate').query('?FREQ'))
+            #i = float(self.app.devices.get('climate').query('?FREQ'))
+            #v = float(self.app.devices.get('climate').query('?FREQ'))
+            self.app.fake_i += random.uniform(-0.05, 0.05)
+            self.app.fake_v += random.uniform(-0.001,-0.005)
             _, temp, humid = environ.snapshot(1)[0]
-            iv.append(time=time.time(), i=i, v=v, temp=temp, humid=humid)
-            time.sleep(.1)
-            self.update_progress(step, self.steps)
+            t = time.time()
+            iv.append(time=t, i=i, v=v, temp=temp, humid=humid)
+            self.app.table.append(dict(time=t, i=self.app.fake_i, v=self.app.fake_v, temp=temp, humid=humid))
+            self.update_progress(t_now-t_begin, t_end-t_begin)
             self.wait_on_pause()
+            self.wait_while_running(t_interval_sec)
         print()
         self.wait(2)
 
@@ -139,15 +165,18 @@ class RampDown(comet.Job):
     steps = 32
 
     def run(self):
-        for step in range(self.steps):
+        offset = self.app.fake_v
+        while self.app.fake_v > 0.0:
             environ = self.app.collections.get('environ')
             iv = self.app.collections.get('iv')
-            i = float(self.app.devices.get('climate').query('?FREQ'))
-            v = float(self.app.devices.get('climate').query('?FREQ'))
+            #i = float(self.app.devices.get('climate').query('?FREQ'))
+            #v = float(self.app.devices.get('climate').query('?FREQ'))
+            self.app.fake_i += random.uniform(-5.3,-5.4)
+            self.app.fake_v += random.uniform(-5.45,-5.55)
             _, temp, humid = environ.snapshot(1)[0]
-            iv.append(time=time.time(), i=i, v=v, temp=temp, humid=humid)
+            iv.append(time=time.time(), i=self.app.fake_i, v=self.app.fake_v, temp=temp, humid=humid)
             time.sleep(.1)
-            self.update_progress(step, self.steps)
+            self.update_progress(offset-self.app.fake_v, offset)
         print()
         self.wait(2)
 

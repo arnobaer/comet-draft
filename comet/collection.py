@@ -28,6 +28,10 @@ class Collection(Component):
         """Retruns a snapshot of recent data records."""
         return self.__records[-abs(n):]
 
+    def snapshot_from(self, offset):
+        """Retruns a snapshot of data records starting with offset."""
+        return self.__records[offset:]
+
     def add_handle(self, handle):
         assert hasattr(handle, 'append')
         assert callable(handle.append)
@@ -53,6 +57,6 @@ class Collection(Component):
         for name, metric in self.__metrics.items():
             value = kwargs.get(name)
             record[name] = metric.type(value)
-        self.__records.append(record.values())
+        self.__records.append(list(record.values()))
         for handle in self.__handles:
             handle.append(record)

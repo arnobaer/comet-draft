@@ -53,7 +53,8 @@ class HttpServer:
 
         @route('/api/status')
         def api_status():
-            return dict(app=dict(status=dict(running=app.state=='running', state=app.state, samples=random.random())))
+            jobs = [(job.label, job.progress) for job in app.active_jobs]
+            return dict(app=dict(status=dict(running=app.state=='running', state=app.state, samples=random.random(), active_jobs=jobs)))
 
         @route('/api/settings')
         def api_settings():
@@ -73,6 +74,18 @@ class HttpServer:
         def api_collections():
             collections = [collection.name for collection in app.collections.values()]
             return dict(app=dict(collections=collections))
+
+        @route('/api/collections/<name>/data')
+        @route('/api/collections/<name>/data/offset/<offset>')
+        def api_collections(name, offset=0):
+            offset = int(offset)
+            records = []
+            size = 0
+            collection = app.collections.get(name)
+            if collection:
+                size = len(collection) # TODO!
+                records = collection.snapshot_from(offset)
+            return dict(app=dict(collection=dict(name=name, size=size, offset=offset, records=records)))
 
         @route('/api/jobs')
         def api_jobs():

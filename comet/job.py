@@ -39,3 +39,19 @@ class Job(ControlComponent):
 
     def run(self):
         pass
+
+class JobHandle(Job):
+
+    def __init__(self, job):
+        super(JobHandle, self).__init__(job.app, job.name, job.label)
+        self.__job = job
+
+    def configure(self):
+        result = self.__job.configure()
+        return result
+
+    def run(self):
+        self.app.active_jobs.add(self.__job)
+        result = self.__job.run()
+        self.app.active_jobs.remove(self.__job)
+        return result
