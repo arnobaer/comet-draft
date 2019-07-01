@@ -41,7 +41,7 @@ class ControlComponent(Component):
 
     def wait_on_pause(self):
         """Halts execution if application is paused."""
-        while self.app.is_paused:
+        while self.app.is_paused: # TODO
             time.sleep(self.wait_interval)
 
     def wait(self, delay):

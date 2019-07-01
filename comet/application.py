@@ -168,7 +168,7 @@ class Application:
 
     @property
     def is_running(self):
-        return self.__asm.is_running
+        return self.__asm.is_running or self.__asm.is_paused
 
     @property
     def is_paused(self):

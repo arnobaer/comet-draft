@@ -1,19 +1,20 @@
 {
   "name": "comet",
   "version": "1.0.0",
-  "description": "",
+  "description": "Web frontend for COMET",
   "main": "index.js",
   "scripts": {
     "test": "parcel index.html",
     "build": "parcel build index.html"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Bernhard Arnold",
+  "license": "GPLv3",
   "dependencies": {
     "dygraphs": "^2.1.0",
     "jquery": "^3.4.1"
   },
   "devDependencies": {
+    "parcel": "^1.12.3",
     "cssnano": "^4.1.10"
   }
 }

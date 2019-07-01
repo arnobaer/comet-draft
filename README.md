@@ -2,16 +2,15 @@
 
 ## Quickstart
 
-Build JavaScript web-app (requires `node.js`)
+**Important:** make sure `node.js` is installed on your system
 
-    $ npm install -g parcel
-    $ cd comet/assets
-    $ npm run build
-    $ cd -
-
-Install dependencies and serve example application
+Install dependencies and build JavaScript web application
 
     $ pip install -r requirements.txt
+    $ python setup.py build
+
+Serve the example application
+
     $ python PYTHONPATH=$(pwd) examples/climate/main.py --port 8080
 
 Use your web browser to access http://localhost:8080/

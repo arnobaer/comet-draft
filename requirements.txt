@@ -8,3 +8,4 @@ pyvisa-sim
 pyyaml
 bottle
 paste
+pynpm
