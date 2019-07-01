@@ -13,11 +13,53 @@ import $ from 'jquery';
 
 $(document).ready(() => {
 
+  var ENGAGE_PASSWORD = 'comet';
+
   var app = {
     title: 'COMET',
     version: '1.0.0',
-    previous_state: null
+    previous_state: null,
+    state_color: 'grey',
+    engaged: false
   };
+
+  function updateControlButtons(state) {
+    $('#app-control button').prop('disabled', true);
+    $('#engage').prop('disabled', false).html('Engage');
+    switch (state.toLowerCase()) {
+      case 'halted':
+        $('#app-params input').prop('disabled', false);
+        app.state_color = 'green';
+        break;
+      case 'configure':
+        app.state_color = 'orange';
+        break;
+      case 'running':
+        app.state_color = 'red';
+        break;
+      case 'paused':
+        app.state_color = 'orange';
+        break;
+    }
+    if (app.engaged) {
+      $('#engage').prop('disabled', false).html('Disengage');
+      switch (state.toLowerCase()) {
+        case 'halted':
+          $('#start').prop('disabled', false);
+          break;
+        case 'configure':
+          break;
+        case 'running':
+          $('#stop').prop('disabled', false);
+          $('#pause').prop('disabled', false).html('Pause');
+          break;
+        case 'paused':
+          $('#stop').prop('disabled', false);
+          $('#pause').prop('disabled', false).html('Continue');
+          break;
+      }
+    }
+  }
 
   // Retruns current parameter values
   function getParamValues() {
@@ -50,6 +92,7 @@ $(document).ready(() => {
   $('.app-version').text(app.version);
 
   $('#app-control button').prop('disabled', true);
+  $('#engage').prop('disabled', false);
   $('#app-params input').prop('disabled', true);
 
   $('#start').click(() => {
@@ -72,6 +115,22 @@ $(document).ready(() => {
     });
   });
 
+  $('#engage-dialog button').click(() => {
+    let elem = $('#engage-dialog input[type=password]');
+    if (elem.val() == ENGAGE_PASSWORD) {
+      $('#engage-dialog').hide();
+    }
+    elem.val('');
+  });
+
+  $('#engage').click(() => {
+    if (!app.engaged) {
+      $('#engage-dialog').show();
+    }
+    app.engaged = !app.engaged;
+    updateControlButtons(app.previous_state);
+  });
+
   setInterval(() => {
     $.getJSON('/api/status', response => {
       $('body').show();
@@ -83,29 +142,8 @@ $(document).ready(() => {
         $('#app-params input').prop('disabled', true);
         $('.app-status').html(state);
         updateParams();
-        switch (state.toLowerCase()) {
-          case 'halted':
-            $('#start').prop('disabled', false);
-            $('#app-params input').prop('disabled', false);
-            state_color = 'green';
-            break;
-          case 'configure':
-            $('#stop').prop('disabled', false);
-            $('#pause').prop('disabled', false);
-            state_color = 'orange';
-            break;
-          case 'running':
-            $('#stop').prop('disabled', false);
-            $('#pause').prop('disabled', false).html('Pause');
-            state_color = 'red';
-            break;
-          case 'paused':
-            $('#stop').prop('disabled', false);
-            $('#pause').prop('disabled', false).html('Continue');
-            state_color = 'orange';
-            break;
-        }
-        $('.app-status.w3-tag').css('background-color', state_color);
+        updateControlButtons(state);
+        $('.app-status.w3-tag').css('background-color', app.state_color);
       }
       app.previous_state = state;
     }).fail(response => {
