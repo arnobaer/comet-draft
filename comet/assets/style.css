@@ -6,7 +6,6 @@
 }
 
 body {
-  padding-top: 92px;
 }
 
 #app-header {
@@ -23,7 +22,15 @@ body {
   line-height: 48px;
 }
 
+#app-header .app-caption {
+  padding-top: 32px;
+}
+
 #app-logo {
   height: 48px;
   width: 48px;
+}
+
+#app-main {
+  padding-top: 82px;
 }
