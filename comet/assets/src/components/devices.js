@@ -16,7 +16,7 @@ export default class Devices extends React.Component {
   }
   render() {
     const devices = this.state.devices.map(device =>
-      <li key={device}>{device} <span className="w3-tag w3-green">OK</span></li>
+      <li key={device}>{device} <span className="w3-tag w3-round w3-green w3-right">OK</span></li>
     );
     return (
       <div className="w3-card">

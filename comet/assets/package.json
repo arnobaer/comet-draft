@@ -4,8 +4,8 @@
   "description": "Web frontend for COMET",
   "main": "index.js",
   "scripts": {
-    "test": "parcel index.html",
-    "build": "parcel build index.html"
+    "test": "parcel src/index.html",
+    "build": "parcel build src/index.html"
   },
   "author": "Bernhard Arnold",
   "license": "GPLv3",

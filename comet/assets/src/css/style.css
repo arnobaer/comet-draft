@@ -33,4 +33,9 @@ body {
 
 #app-main {
   padding-top: 82px;
+  padding-bottom: 32px !important;
+}
+
+#app-footer {
+  padding-bottom: 32px !important;
 }

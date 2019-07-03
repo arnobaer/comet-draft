@@ -1,17 +1,11 @@
-// COMET v1.0.0
-
-// CSS
-import './w3.css';
-import './style.css';
-
-// Images
-import './icon.svg';
-
 // Dependencies
-import Dygraph from 'dygraphs';
+import './css/w3.css';
+import './css/style.css';
 
 import React from 'react';
 import ReactDOM from 'react-dom';
+import Dygraph from 'dygraphs';
+
 import App from './components/app';
 
 ReactDOM.render(

@@ -3,8 +3,9 @@
 import React from 'react';
 
 function JobList(props) {
-  if (props.jobs.length) {
-    const items = props.jobs.map((job) =>
+  const jobs = props.jobs;
+  if (jobs.length) {
+    const items = jobs.map((job) =>
       <li key={job[0].toLowerCase()}>{job[0]} {job[1].toFixed(2)} %</li>
     );
     return (

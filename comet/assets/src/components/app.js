@@ -21,19 +21,28 @@ export default class App extends React.Component {
         name: "COMET",
         slogan: "Control & Measurement Toolkit",
         caption: "Technical demonstrator",
-        version: "1.0.0",
+        github: "https://github.com/arnobaer/comet/",
+        version: "1.0.0"
       },
+      statemachine: {
+        state: 'undefined',
+        color: 'gray'
+      },
+      settings: {},
       updateInterval: 500,
       waitForUpdate: false,
       params: [],
-      currentState: 'undefined',
-      currentStateColor: 'gray',
       activeJobs: [],
     }
     this.getStatus = this.getStatus.bind(this);
     this.getStateColor = this.getStateColor.bind(this);
   }
   componentDidMount() {
+    // Load application settings
+    fetch('/api/settings')
+    .then(response => response.json())
+    .then(data => this.setState({settings: data.app.settings}));
+    // Run continious updates
     var updateIntervalId = setInterval(this.getStatus, this.state.updateInterval);
     this.setState({updateIntervalId: updateIntervalId});
   }
@@ -57,38 +66,45 @@ export default class App extends React.Component {
       const status = data.app.status;
       const state = status.state.toLowerCase();
       this.setState({
-        currentState: state,
-        currentStateColor: this.getStateColor(state),
+        statemachine: {
+          state: state,
+          color: this.getStateColor(state)
+        },
         activeJobs: status.active_jobs
       });
     })
-    fetch('/api/params')
-    .then(response => response.json())
-    .then(data => {
-      this.setState({params: data.app.params});
-    });
+    if (this.state.statemachine.state !== 'halted') {
+      fetch('/api/params')
+      .then(response => response.json())
+      .then(data => {
+        this.setState({params: data.app.params});
+      });
+    }
   }
   render() {
     const {meta} = this.state;
     const {version, slogan} = this.state;
+    const {statemachine} = this.state;
+    const {params, settings} = this.state;
+    const {activeJobs} = this.state;
     return (
       <div>
-        <Header meta={meta} currentState={this.state.currentState} currentStateColor={this.state.currentStateColor} />
+        <Header meta={meta} statemachine={statemachine} />
         <div id="app-main" className="w3-white">
-          <Control params={this.state.params} currentState={this.state.currentState} currentStateColor={this.state.currentStateColor} />
+          <Control statemachine={statemachine} params={params} />
           <div className="w3-row">
             <div className="w3-half w3-container">
-              <Panels activeJobs={this.state.activeJobs} />
+              <Panels activeJobs={activeJobs} />
             </div>
             <div className="w3-quarter w3-container">
-              <Params currentState={this.state.currentState} params={this.state.params}/>
+              <Params statemachine={statemachine} params={params} />
             </div>
             <div className="w3-quarter w3-container">
               <Devices />
               <Collections />
               <Jobs />
               <Services />
-              <Settings />
+              <Settings settings={settings} />
             </div>
           </div>
         </div>

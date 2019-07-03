@@ -13,17 +13,15 @@ function getType(type) {
 }
 
 class ParamInput extends React.Component {
-  constructor(props) {
-    super(props);
-  }
   render() {
-    const id = `app-param-${this.props.name}`
-    const unit = this.props.unit ? ` [${this.props.unit}]` : '';
-    const type = getType(this.props.type);
+    const {name, label, type, value, unit} = this.props.param;
+    const id = `app-param-${name}`
+    const suffix = unit ? ` [${unit}]` : '';
+    const inputType = getType(type);
     return (
-      <div>
-        <label htmlFor={id}>{this.props.label}{unit}</label>
-        <input id={id} className="w3-input" type={type} name={this.props.name} defaultValue={this.props.value} disabled={this.props.disabled} />
+      <div className="w3-margin-bottom">
+        <label htmlFor={id}>{label}{suffix}</label>
+        <input id={id} className="w3-input" type={inputType} name={name} defaultValue={value} disabled={this.props.disabled} />
       </div>
     );
   }
@@ -31,9 +29,10 @@ class ParamInput extends React.Component {
 
 export default class Params extends React.Component {
   render() {
-    const disabled = this.props.currentState !== 'halted';
+    const {state, color} = this.props.statemachine;
+    const disabled = state !== 'halted';
     const params = this.props.params.map(param =>
-      <ParamInput disabled={disabled} key={param.name} name={param.name} label={param.label} type={param.type} value={param.value} unit={param.unit} />
+      <ParamInput key={param.name} disabled={disabled} param={param} />
     );
     return (
       <div id="app-component-params">
