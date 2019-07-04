@@ -3,6 +3,7 @@ import logging
 import random
 
 import comet
+from devices import CTSDevice
 
 class Application(comet.Application):
 
@@ -11,6 +12,7 @@ class Application(comet.Application):
     def setup(self):
         # Set attributes
         self.set('default_op', 'Monty')
+        self.set('cts_resource', 'TCPIP::192.168.100.205::1080::SOCKET')
         # Register parameters
         self.add_param('n_sensors', type=int, min=0, max=self.max_sensors, label="# of sensors")
         for i in range(self.max_sensors):
@@ -26,10 +28,12 @@ class Application(comet.Application):
         self.add_param('t_interval', default=60.0, prec=2, unit='sec')
         self.add_param('t_tcp_recover', min=0, type=int, label="Wait on TCP reconnect to cliamte chamber")
         # register devices
-        self.add_device('climate', 'ASRL1::INSTR')
-        self.add_device('smu', 'ASRL1::INSTR')
-        self.add_device('multi', 'ASRL1::INSTR')
-        self.add_device('shunt', 'ASRL1::INSTR')
+        self.add_device('climate', self.get('cts_resource'))
+        # self.add_device('smu', 'ASRL1::INSTR')
+        # self.add_device('multi', 'ASRL1::INSTR')
+        # self.add_device('shunt', 'ASRL1::INSTR')
+        # HACK: create a CTS binary device from allocated resource
+        self.cts_device = CTSDevice('cts', self.devices.get('climate').resource)
         # Register collections
         self.add_collection('environ', EnvironCollection)
         self.add_collection('iv', IVCollection)
@@ -64,7 +68,8 @@ class EnvironCollection(comet.Collection):
         self.add_metric('time', unit='s')
         self.add_metric('temp', unit='°C')
         self.add_metric('humid', unit='%')
-        writer = comet.CSVFileWriter("dump.csv", fieldnames=['time', 'temp', 'humid'])
+        self.add_metric('water', unit='l')
+        writer = comet.CSVFileWriter("dump.csv", fieldnames=['time', 'temp', 'humid', 'water'])
         self.add_handle(writer)
 
 class IVCollection(comet.Collection):
@@ -81,21 +86,16 @@ class IVCollection(comet.Collection):
 
 class Monitoring(comet.Service):
 
-    def setup(self):
-        self.temp = random.uniform(20, 24)
-        self.humid = random.uniform(40, 60)
-
     def run(self):
+        environ = self.app.collections.get('environ')
+        cts = self.app.cts_device
         while self.is_alive:
-            environ = self.app.collections.get('environ')
-            self.temp += random.uniform(-.5, .5)
-            temp = self.temp # float(self.app.devices.get('climate').query('?FREQ'))
-            self.humid += random.uniform(-.1, .1)
-            if self.humid > 100.0: self.humid = 100.0
-            if self.humid < 10.0: self.humid = 10.0
-            humid = self.humid # float(self.app.devices.get('climate').query('?FREQ'))
-            environ.append(time=time.time(), temp=temp, humid=humid)
-            self.wait(2)
+            t = self.time()
+            temp_actual, temp_target = cts.get_analog_channel(1)
+            humid_actual, humid_target = cts.get_analog_channel(2)
+            water_actual, water_target = cts.get_analog_channel(3)
+            environ.append(time=t, temp=temp_actual, humid=humid_actual, water=water_actual)
+            self.wait(5)
 
 class RampUp(comet.Job):
 
@@ -186,7 +186,7 @@ class RampDown(comet.Job):
 
 def main():
     # Create user application
-    app = Application('Longterm', backend='@sim')
+    app = Application('Longterm', backend='@py')
 
     logging.getLogger().setLevel(logging.INFO)
 

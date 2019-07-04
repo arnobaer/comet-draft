@@ -1,9 +1,6 @@
-import pyvisa
 import datetime
-import random
 import time
 
-import env
 from comet.device import Device
 
 class BytesDevice(Device):
@@ -153,42 +150,3 @@ class CTSDevice(BytesDevice):
         result = self.query_bytes('P{:03d}'.format(number), 4)
         value =  int(result[1:])
         return value if value else None
-
-def main():
-    rm = pyvisa.ResourceManager('@py')
-    resource = rm.open_resource('TCPIP::192.168.100.205::1080::SOCKET', write_termination='')
-
-    climate = CTSDevice('Climate', resource)
-
-    r = climate.get_time()
-    print(r)
-
-    # r = climate.set_time(datetime.datetime.now())
-    # print(r)
-
-    for i in range(1, 16+1):
-        r = climate.get_analog_channel(i)
-        print(r)
-
-    # for i in range(1, 7+1):
-    #     r = climate.set_analog_channel(i, random.uniform(0., 5.))
-    #     print(r)
-    #
-    # r = climate.get_status()
-    # print(r)
-    #
-    # r = climate.get_program()
-    # print(r)
-    #
-    # r = climate.start_program(42)
-    # print(r)
-    #
-    # climate.resource.close()
-    # time.sleep(10)
-    # climate.resource.open()
-
-    r = climate.get_status()
-    print(r)
-
-if __name__ == '__main__':
-    main()
