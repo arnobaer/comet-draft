@@ -25,8 +25,11 @@ class HttpServer:
         self.__app = app
 
         @route('/')
+        def index():
+            return static_file('index.html', root=self.assets_path)
+
         @route('/<filename>')
-        def assets(filename=None):
+        def assets(filename):
             return static_file(filename or 'index.html', root=self.assets_path)
 
         @post('/api/start')
@@ -80,12 +83,15 @@ class HttpServer:
         def api_collections(name, offset=0):
             offset = int(offset)
             records = []
+            metrics = []
             size = 0
             collection = app.collections.get(name)
-            if collection:
+            if collection is not None:
                 size = len(collection) # TODO!
                 records = collection.snapshot_from(offset)
-            return dict(app=dict(collection=dict(name=name, size=size, offset=offset, records=records)))
+                for metric in collection.metrics.values():
+                    metrics.append(dict(name=metric.name, label=metric.label, unit=metric.unit))
+            return dict(app=dict(collection=dict(name=name, size=size, offset=offset, records=records, metrics=metrics)))
 
         @route('/api/jobs')
         def api_jobs():

@@ -53,10 +53,10 @@ export default class Control extends React.Component {
           <div className="w3-card">
 
             <div id="app-control" className="w3-light-grey w3-padding">
-              <button className="w3-button w3-round w3-margin-right w3-theme" onClick={this.onEngage}>{engaged == true ? "Disengage" : "Engage"}</button>
-              <button className="w3-button w3-round w3-margin-right w3-green" onClick={this.onStart} disabled={!(engaged && state == 'halted')}>Start</button>
-              <button className="w3-button w3-round w3-margin-right w3-red" onClick={this.onStop} disabled={!(engaged && (state == 'running' || state == 'paused'))}>Stop</button>
-              <button className="w3-button w3-round w3-orange" onClick={this.onPause} disabled={!(engaged && (state == 'running' || state == 'paused'))}>{state == 'paused' ? "Continue" : "Pause"}</button>
+              <button className="w3-button w3-theme" onClick={this.onEngage}>{engaged == true ? "Disengage" : "Engage"}</button>
+              <button className="w3-button w3-green" onClick={this.onStart} disabled={!(engaged && state == 'halted')}>Start</button>
+              <button className="w3-button w3-red" onClick={this.onStop} disabled={!(engaged && (state == 'running' || state == 'paused'))}>Stop</button>
+              <button className="w3-button w3-orange" onClick={this.onPause} disabled={!(engaged && (state == 'running' || state == 'paused'))}>{state == 'paused' ? "Continue" : "Pause"}</button>
             </div>
 
             <div>

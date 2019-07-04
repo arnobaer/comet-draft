@@ -2,7 +2,7 @@
   "name": "comet",
   "version": "1.0.0",
   "description": "Web frontend for COMET",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
     "test": "parcel src/index.html",
     "build": "parcel build src/index.html"

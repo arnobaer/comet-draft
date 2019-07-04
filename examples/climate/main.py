@@ -102,9 +102,9 @@ class RampUp(comet.Job):
     steps = 64
 
     def run(self):
+        environ = self.app.collections.get('environ')
+        iv = self.app.collections.get('iv')
         for step in range(self.steps):
-            environ = self.app.collections.get('environ')
-            iv = self.app.collections.get('iv')
             #i = float(self.app.devices.get('climate').query('?FREQ'))
             #v = float(self.app.devices.get('climate').query('?FREQ'))
             self.app.fake_i += random.uniform(1.3,1.4)

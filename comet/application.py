@@ -176,6 +176,9 @@ class Application:
 
     # State hooks
 
+    def on_enter(self):
+        pass
+
     def on_halted(self):
         pass
 
@@ -189,6 +192,9 @@ class Application:
         pass
 
     def on_stopping(self):
+        pass
+
+    def on_exit(self):
         pass
 
     # Controls
@@ -218,6 +224,8 @@ class Application:
         for thread in self.__threads:
             thread.start()
 
+        self.on_enter()
+
         # event loop
         while self.__alive:
             asm = self.__asm
@@ -245,6 +253,8 @@ class Application:
 
             # throttle event loop
             time.sleep(self.event_loop_throttle)
+
+        self.on_exit()
 
         for service in self.services.values():
             service.quit()
