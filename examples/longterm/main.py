@@ -1,3 +1,17 @@
+# Longterm IV sensor measurement
+#
+# Equipment
+# - CTS C-40 Climate Chamber
+# - Keithley Model 2700 Multimeter/Switch
+# - Keithley Model 2410 SMU
+#
+# Workflow
+# - ramping up to maximum voltage
+# - ramping down to bias voltage
+# - longterm monitoring
+# - ramping down to zero voltage
+#
+
 import time
 import logging
 import random
@@ -29,8 +43,8 @@ class Application(comet.Application):
         self.add_param('t_tcp_recover', min=0, type=int, label="Wait on TCP reconnect to cliamte chamber")
         # register devices
         self.add_device('climate', self.get('cts_resource'))
-        # self.add_device('smu', 'ASRL1::INSTR')
-        # self.add_device('multi', 'ASRL1::INSTR')
+        self.add_device('k2410', 'TCPIP::::10001::INSTR')
+        self.add_device('k2700', 'TCPIP::::10002::INSTR')
         # self.add_device('shunt', 'ASRL1::INSTR')
         # HACK: create a CTS binary device from allocated resource
         self.cts_device = CTSDevice('cts', self.devices.get('climate').resource)
@@ -53,6 +67,61 @@ class Application(comet.Application):
         writer = comet.HephyDBFileWriter('iv.hephydb')
         writer.create(["IV","demo","testing"])
         self.table = writer.create_table('iv_curve', ['time', 'i', 'v', 'temp', 'humid'])
+
+        # reset Multi
+        k2700 = self.devices.get('k2700')
+        k2700.write('*RST')
+        k2700.write(':FUNC "VOLT:DC", (@101:140)')
+        # delete instrument buffer
+        k2700.write(':TRACE:CLEAR')
+        # turn off continous measurements
+        k2700.write(':INIT:CONT OFF')
+        # set trigger source immediately
+        k2700.write(':TRIG:SOUR IMM')
+        # set channels to scan
+        n_sensors = self.params.get('n_sensors').value
+        if n_sensors > 10:
+            offset = n_sensors + 120
+            k2700.write(':ROUTE:SCAN (@111:120,131:{})'.format(offset))
+        else:
+            offset = n_sensors + 100
+            k2700.write('ROUTE:SCAN (@101:{})'.format(offset))
+        k2700.write(':TRIG:COUN 1')
+        k2700.write(':SAMP:COUN {}'.format(n_sensors))
+        # start scan when triggered
+        k2700.write(':ROUT:SCAN:TSO IMM')
+        # enable scan
+        k2700.write(':ROUT:SCAN:LSEL INT')
+        k2700.write(':TRIG:COUN 1')
+        k2700.write(':SAMP:COUN {}'.format(n_sensors))
+        # start scan when triggered
+        k2700.write(':ROUT:SCAN:TSO IMM')
+        # enable scan
+        k2700.write(':ROUT:SCAN:LSEL INT')
+
+        # reset SMU
+        k2410 = self.devices.get('k2410')
+        k2410.write('*RST')
+        k2410.write('SENS:AVER:TCON REP')
+        k2410.write('SENS:AVER ON')
+        k2410.write('ROUT:TERM REAR')
+        k2410.write(':SOUR:FUNC VOLT')
+        k2410.write('OUTP OFF')
+        k2410.write('SOUR:VOLT:RANG MAX')
+        # measure current DC
+        k2410.write('SENS:FUNC "CURR"')
+        # output data format
+        k2410.write('SENS:CURR:RANG:AUTO 1')
+        k2410.write('TRIG:CLE')
+        k2410.write('SENS:AVER:TCON REP')
+        k2410.write('SENS:AVER OFF')
+        k2410.write('ROUT:TERM REAR')
+        time.sleep(.100)
+        k2410.write('SENS:CURR:PROT:LEV {:E}'.format(compliance_uamp))
+        # clear voltage
+        k2410.write('SOUR:VOLT:LEV {:E}'.format(0.000))
+        # NOTE switch output ON
+        k2410.write('OUTP ON')
 
     def on_running(self):
         self.jobs.get('ramp_up').run()
@@ -99,23 +168,35 @@ class Monitoring(comet.Service):
 
 class RampUp(comet.Job):
 
-    steps = 64
-
     def run(self):
         environ = self.app.collections.get('environ')
         iv = self.app.collections.get('iv')
-        for step in range(self.steps):
-            #i = float(self.app.devices.get('climate').query('?FREQ'))
-            #v = float(self.app.devices.get('climate').query('?FREQ'))
-            self.app.fake_i += random.uniform(1.3,1.4)
-            self.app.fake_v += random.uniform(1.45,1.55)
-            _, temp, humid = environ.snapshot(1)[0]
-            t = time.time()
-            iv.append(time=t, i=self.app.fake_i, v=self.app.fake_v, temp=temp, humid=humid)
-            time.sleep(.1)
-            self.update_progress(step, self.steps)
-
-        print()
+        # ramp up
+        steps = int(ramp_up_end_voltage / stepsize_v)
+        volts = 0.0
+        for step in range(steps):
+            #NOTE if stop_button:
+            #    break
+            k2410.write('SOUR:VOLT:LEV {:E}'.format(step * stepsize_v))
+            time.sleep(ramp_delay)
+            #NOTE if stop_button:
+            #    break
+            # check SMU compliance
+            curr = abs(float(k2410.query('READ?')))
+            if curr > compliance_uamp:
+                raise ValueError(curr)
+            for i in range(n_samples):
+                # start measurement scan
+                k2700.write('INIT')
+                time.sleep(.500)
+                # read buffer
+                r = k2700.query('FETCH?')
+                # split result
+                r = 470000.0 # ohm, from calibration measurement array
+                u = r.split(',')[0]
+                i = u / r
+                # TODO
+            self.update_progress(step, steps)
 
 class RampBias(comet.Job):
 
