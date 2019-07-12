@@ -41,6 +41,12 @@ class Variant:
     def __len__(self):
         return len(self.__value)
 
+    def __eq__(self, other):
+        return self.__value == other
+
+    def __lt__(self, other):
+        return self.__value < other
+
     @property
     def int(self):
         try:

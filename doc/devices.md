@@ -15,7 +15,7 @@ commands:
   get_idn:
     method: query
     message: '*IDN?'
-    require: 'INQUISITION\sINSTRUMENTS\sINC\.\,MODEL\s8000\s.*'
+    require: 'INQUISITION\sINSTRUMENTS\sINC\.\,MODEL\s1250\s.*'
   get_reading:
     method: query
     message: READ?

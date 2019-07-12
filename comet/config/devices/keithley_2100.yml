@@ -1,14 +1,15 @@
 name: Keithley 2100
-read_termination: '\n'
+read_termination: "\n"
 commands:
   set_reset:
     method: write
-    message: '*RST'
+    message: "*RST"
 sequences:
   do_reset:
     - set_reset: []
-error_parser: Error\:\s*(\-?\d+)
-error_messages:
+errors:
+  expression: Error\:\s*(\-?\d+)
+  messages:
   -101: Invalid character
   -102: Syntax error
   -103: Invalid separator

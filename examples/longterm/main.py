@@ -42,9 +42,9 @@ class Application(comet.Application):
         self.add_param('t_interval', default=60.0, prec=2, unit='sec')
         self.add_param('t_tcp_recover', min=0, type=int, label="Wait on TCP reconnect to cliamte chamber")
         # register devices
-        self.add_device('climate', self.get('cts_resource'))
-        self.add_device('k2410', 'TCPIP::::10001::INSTR')
-        self.add_device('k2700', 'TCPIP::::10002::INSTR')
+        self.add_device('climate', self.get('cts_resource'), cls=CTSDevice)
+        #self.add_device('k2410', 'TCPIP::::10001::INSTR')
+        #self.add_device('k2700', 'TCPIP::::10002::INSTR')
         # self.add_device('shunt', 'ASRL1::INSTR')
         # HACK: create a CTS binary device from allocated resource
         self.cts_device = CTSDevice('cts', self.devices.get('climate').resource)

@@ -4,15 +4,17 @@ import threading
 from collections import OrderedDict
 
 from statemachine import StateMachine, State
+import yaml
 import pyvisa
 
 from .parameter import Parameter
-from .device import DeviceManager
+from .device import DeviceFactory
 from .component import ComponentManager
 from .collection import Collection
 from .job import Job, JobHandle
 from .service import Service
 from .settings import Settings
+from .utilities import make_path
 
 ORG_NAME = 'HEPHY'
 APP_NAME = 'comet'
@@ -33,7 +35,8 @@ class Application:
         self.__name = name
         self.__params = OrderedDict()
         rm = pyvisa.ResourceManager(backend or self.default_backend)
-        self.__manager = DeviceManager(rm)
+        self.__device_factory = DeviceFactory(rm)
+        self.__devices = OrderedDict()
         self.__collections = ComponentManager(self, type=Collection)
         self.__jobs = ComponentManager(self, type=Job)
         self.__services = ComponentManager(self, type=Service)
@@ -74,7 +77,7 @@ class Application:
     def add_param(self, name, **kwargs):
         """Register application parameter."""
         if name in self.__params:
-            raise KeyError("Parameter with name '{}' already registered.".format(name))
+            raise KeyError("Parameter with name '{}' already exists.".format(name))
         param = Parameter(name, **kwargs)
         self.__params[name] = param
         return param
@@ -83,13 +86,18 @@ class Application:
 
     @property
     def devices(self):
-        return self.__manager.devices
+        return self.__devices
 
-    def add_device(self, name, resource_name, **kwargs):
+    def add_device(self, name, resource_name, config={}):
         """Register device."""
-        if name in self.__manager.devices:
-            raise KeyError("Device with name '{}' already registered.".format(name))
-        device = self.__manager.create(name, resource_name, **kwargs)
+        if isinstance(config, str):
+            with open(make_path('config', 'devices', '{}.yml'.format(config))) as f:
+                config = yaml.safe_load(f)
+                print("CONFIG=",config)
+        if name in self.__devices:
+            raise KeyError("Device with name '{}' already exists.".format(name))
+        device = self.__device_factory.create(name, resource_name, config)
+        self.__devices[name] = device
         return device
 
     @property

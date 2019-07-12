@@ -1,10 +1,11 @@
 import unittest
+import re
 import env
 
 from pyvisa import ResourceManager
 
 from comet.device import DeviceException
-from comet.device import DeviceManager
+from comet.device import DeviceFactory
 from comet.device import DeviceCommand
 from comet.device import DeviceMessageHandler
 from comet.device import DeviceErrorHandler
@@ -12,23 +13,18 @@ from comet.device import DeviceErrorHandler
 class DeviceManagerTestCase(unittest.TestCase):
     def setUp(self):
         rm = ResourceManager('@sim')
-        self.manager = DeviceManager(rm)
+        self.factory = DeviceFactory(rm)
 
 class BasicDeviceManagerTestCase(DeviceManagerTestCase):
     def runTest(self):
-        manager = self.manager
-        self.assertEqual(manager.factory.__class__.__name__, 'DeviceFactory')
-        self.assertEqual(type(manager.devices), dict)
-        device = manager.create('DUMMY', 'GPIB::14', {})
-        self.assertEqual(device.__class__.__name__, 'Device')
-        self.assertEqual(device.name, 'DUMMY')
-        device = manager.get('DUMMY')
+        factory = self.factory
+        self.assertEqual(factory.__class__.__name__, 'DeviceFactory')
+        device = factory.create('DUMMY', 'GPIB::14', {})
         self.assertEqual(device.__class__.__name__, 'Device')
         self.assertEqual(device.name, 'DUMMY')
         config = {'commands': {'get_value': {'method': 'query', 'message': 'VALUE?', 'description': 'query value'}}}
-        device = manager.create('SMU1', 'GPIB::16', config)
+        device = factory.create('SMU1', 'GPIB::16', config)
         self.assertEqual(device.__class__.__name__, 'Device')
-        self.assertTrue(device is manager.get('SMU1'))
         self.assertEqual(device.name, 'SMU1')
         self.assertEqual(device.get_value.method, 'query')
         self.assertEqual(device.get_value.kwargs.get('message'), 'VALUE?')
@@ -37,7 +33,7 @@ class BasicDeviceManagerTestCase(DeviceManagerTestCase):
 class DeviceCommandTestCase(DeviceManagerTestCase):
     def runTest(self):
         """This test depends on the default shipped pyvisa-sim configuration (device 1)."""
-        device = self.manager.create('SMU', 'ASRL1::INSTR', {'read_termination': '\n'})
+        device = self.factory.create('SMU', 'ASRL1::INSTR', {'read_termination': '\n'})
 
         # query command
         kwargs = {'message': '?FREQ'}
@@ -54,7 +50,7 @@ class DeviceCommandTestCase(DeviceManagerTestCase):
         command = DeviceCommand('get_frequency', 'query', **kwargs)
         self.assertEqual(command.name, 'get_frequency')
         self.assertEqual(command.method, 'query')
-        self.assertEqual(command.require, '.*((\d+)\.(\d+))$')
+        self.assertEqual(command.require, re.compile('.*((\d+)\.(\d+))$'))
         self.assertEqual(command.description, 'get frequency')
         result = command(device)
         self.assertEqual(result, '100.00')
@@ -62,7 +58,7 @@ class DeviceCommandTestCase(DeviceManagerTestCase):
         # query command
         kwargs = {'message': 'NONE', 'require': '(ERROR)(\n?)$',}
         command = DeviceCommand('get_none', 'query', **kwargs)
-        self.assertEqual(command.require, '(ERROR)(\n?)$')
+        self.assertEqual(command.require, re.compile('(ERROR)(\n?)$'))
         result = command(device)
         self.assertEqual(result, 'ERROR')
 
@@ -76,13 +72,6 @@ class DeviceCommandTestCase(DeviceManagerTestCase):
         result = device.query('?FREQ')
         self.assertEqual(result, '4.20')
 
-        # query_ascii_values command
-        kwargs = {'message': '?FREQ', 'converter': 'f'}
-        command = DeviceCommand('get_frequency', 'query_ascii_values', **kwargs)
-        self.assertEqual(command.method, 'query_ascii_values')
-        result = command(device)[0]
-        self.assertEqual(result, 4.200)
-
         # applying choices
         kwargs = {'message': '!FREQ {:.2f}', 'choices': [1.2, 2.4]}
         command = DeviceCommand('set_frequency', 'query', **kwargs)
@@ -92,15 +81,12 @@ class DeviceCommandTestCase(DeviceManagerTestCase):
         self.assertEqual(result, 'OK')
 
         # query converter
-        kwargs = {'message': '?FREQ', 'converter': 'f'}
+        kwargs = {'message': '?FREQ'}
         command = DeviceCommand('set_frequency', 'query', **kwargs)
         result = command(device)
-        self.assertEqual(result, 2.400)
-        command.kwargs['converter'] = 'G'
-        result = command(device)
-        self.assertEqual(result, 2.400)
-        command.kwargs['converter'] = 's'
-        result = command(device)
+        self.assertEqual(result.float, 2.400)
+        self.assertEqual(result.str, '2.40')
+        self.assertEqual(str(result.str), '2.40')
         self.assertEqual(result, '2.40')
 
 class DeviceMessageHandlerTestCase(DeviceManagerTestCase):
@@ -124,10 +110,12 @@ class DeviceMessageHandlerTestCase(DeviceManagerTestCase):
         self.assertRaises(DeviceException, handler.handle, 'ERR42')
 
         # key error_parser automatically creates an error handler
-        device = self.manager.create('SMU', 'ASRL1::INSTR', {
+        device = self.factory.create('SMU', 'ASRL1::INSTR', {
             'read_termination': '\n',
-            'error_parser': 'ERROR',
-            'error_messages': { 42: "a minor error" }
+            'errors': {
+                'expression': 'ERROR',
+                'messages': { 42: "a minor error" }
+            }
         })
         self.assertRaises(DeviceException, device.query, '?INVLD')
 

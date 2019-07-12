@@ -1,9 +1,9 @@
 name: Keithley 2410
-read_termination: '\n'
+read_termination: "\n"
 commands:
   set_reset:
     method: write
-    message: *RST
+    message: '*RST'
   set_source_current:
     method: write
     message: SOUR:FUNC CURR {}
@@ -45,7 +45,7 @@ commands:
     choices: [FIXED]
   set_reset_measure:
     method: write
-    message: SENS:FUNC:OFF: {}
+    message: SENS:FUNC:OFF {}
     choices: [VOLT, CURR]
   set_complience:
     method: write
