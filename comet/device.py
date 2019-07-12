@@ -7,6 +7,8 @@ from pyvisa import util as pyvisa_util
 
 from types import MethodType
 
+from .value import Value
+
 class DeviceException(Exception):
     pass
 
@@ -92,6 +94,11 @@ class DeviceFactory:
             setattr(device, command.name, MethodType(command, device))
         return device
 
+class DeviceResponse(Value):
+    
+    def __init__(self, name, value):
+        super(DeviceResponse, self).__init__(value)
+        self.__name = name
 
 class Device:
     """Generic device class.
@@ -123,12 +130,11 @@ class Device:
         # Create thread safe resource API
         for method in self.ResourceAPI:
             def mutex_wrapper(callback, *args, **kwargs):
-                self.__mutex.acquire()
-                result = callback(*args, **kwargs)
-                self.__mutex.release()
+                with self.__mutex:
+                    result = callback(*args, **kwargs)
                 for handler in self.__message_handlers:
                     handler.handle(result)
-                return result
+                return DeviceResponse(self.name, result)
             callback = getattr(self.__resource, method)
             setattr(self, method, MethodType(mutex_wrapper, callback))
 
