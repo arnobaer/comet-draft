@@ -5,12 +5,14 @@ class VariantError(Exception):
 
 class Variant:
     """Generic value container providing methods to manipulate and convert a value.
-
-    >>> value = Variant('#GND#GND#')
     """
 
     def __init__(self, value):
         self.__value = value
+
+    @property
+    def value(self):
+        return self.__value
 
     @property
     def type(self):
@@ -22,15 +24,28 @@ class Variant:
         """
         return type(self.__value)
 
-    def convert(self, type, *args, **kwargs):
+    def __len__(self):
+        return len(self.__value)
+
+    def __eq__(self, other):
+        if isinstance(other, self.__class__):
+            self.__value == other.value
+        return self.__value == other
+
+    def __lt__(self, other):
+        if isinstance(other, self.__class__):
+            self.__value < other.value
+        return self.__value < other
+
+    def to(self, type, *args, **kwargs):
         """Convert value to type. Any type, function or class can be
         passed as type argument. Returns a Variant object so method can
         be changed to continue conversion to another type if required.
 
         >>> value = Variant('0x2a')
-        >>> value.convert(int, 16)
+        >>> value.to(int, 16)
         42
-        >>> value.convert(int, 16).convert(float)
+        >>> value.to(int, 16).to(float)
         42.0
         """
         try:
@@ -38,48 +53,40 @@ class Variant:
         except Exception as e:
             raise VariantError(e)
 
-    def __len__(self):
-        return len(self.__value)
+    def toint(self, base=None):
+        if base is not None:
+            return self.to(int, base=base)
+        return self.to(int)
 
-    def __eq__(self, other):
-        return self.__value == other
-
-    def __lt__(self, other):
-        return self.__value < other
-
-    @property
-    def int(self):
+    def __int__(self):
         try:
             return int(self.__value)
         except Exception as e:
             raise VariantError(e)
 
-    @property
-    def int16(self):
-        try:
-            return int(self.__value, 16)
-        except Exception as e:
-            raise VariantError(e)
+    def tofloat(self):
+        return self.to(float)
 
-    def __int__(self):
-        return self.int
-
-    @property
-    def float(self):
+    def __float__(self):
         try:
             return float(self.__value)
         except Exception as e:
             raise VariantError(e)
 
-    def __float__(self):
-        return self.float
-
-    @property
-    def str(self):
-        return str(self.__value)
+    def tostr(self):
+        return self.to(str)
 
     def __str__(self):
-        return self.str
+        try:
+            return str(self.__value)
+        except Exception as e:
+            raise VariantError(e)
+
+    def tobytes(self):
+        return self.encode()
+
+    def __bytes__(self):
+        return self.encode()
 
     def encode(self, *args, **kwargs):
         """Encode string value to bytes. Returns Variant value."""
@@ -127,7 +134,7 @@ class Variant:
         """
         if pattern is None:
             try:
-                return self.str.split(**kwargs)
+                return self.__value.split(**kwargs)
             except Exception as e:
                 raise VariantError(e)
         try:
